@@ -1,0 +1,221 @@
+//===- Ops.td - TToy dialect operations definitions ----------*- tablegen -*-===//
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+//
+// Defines the operations of the TToy dialect.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TTOY_OPERATIONS
+#define TTOY_OPERATIONS
+
+include "mlir/IR/OpBase.td"
+include "mlir/Interfaces/FunctionInterfaces.td"
+include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+
+// dialect definitions
+def TToy_Dialect : Dialect {
+    let name = "ttoy";
+    let cppNamespace = "::mlir::toy";
+    let summary = "a tensor based toy dialect";
+    let description = [{
+        mlir extension.
+    }];
+    // TODO
+}
+
+class TToy_Op<string mnemonic, list<Trait> traits = []> : Op<TToy_Dialect, mnemonic, traits>;
+
+// ConstantOp
+// this how ttoy represent a constant tensor
+// input a descriptive attribute and output a tensor
+// the attr and value type is provided by mlir infra
+def ConstantOp : TToy_Op<"constant", [Pure]> {
+    // will print as 'ttoy.constant'
+    let summary = "constant";
+    let arguments = (ins 
+        F64ElementsAttr : $value
+        );
+    let results = (outs 
+        F64Tensor
+        );
+    
+    // to custom parse & print method 
+    let hasCustomAssemblyFormat = 1;
+    let builders = [
+        OpBuilder<(ins "DenseElementsAttr" : $value), [{
+            build($_builder, $_state, value.getType(), value);
+        }]>,
+
+        // use mlir default
+        OpBuilder<(ins "double": $value)>
+    ];
+
+    let hasVerifier = 1;
+}
+
+// AddOp: may broadcast
+def AddOp : TToy_Op<"add", [Pure]> {
+    let summary = "add";
+    let arguments = (ins 
+        F64Tensor : $lhs, 
+        F64Tensor : $rhs
+        );
+    let results = (outs 
+        F64Tensor
+        );
+
+    let hasCustomAssemblyFormat = 1;
+    let builders = [
+        OpBuilder<(ins "Value" : $lhs, "Value" : $rhs)>
+    ];
+}
+
+// FuncOp
+def FuncOp : TToy_Op<"func", [FunctionOpInterface, IsolatedFromAbove]> {
+    let summary = "function declare and define";
+    let arguments = (ins
+        SymbolNameAttr : $func_name,
+        TypeAttrOf<FunctionType> : $function_type,
+        OptionalAttr<DictArrayAttr> : $arg_attrs,
+        OptionalAttr<DictArrayAttr> : $res_attrs
+    );
+    let regions = (region
+        AnyRegion : $body 
+    );
+
+    let hasCustomAssemblyFormat = 1;
+    let skipDefaultBuilders = 1;
+    let builders = [OpBuilder<(ins
+        "StringRef" : $name,
+        "FunctionType" : $type,
+        CArg<"ArrayRef<NamedAttribute>", "{}"> : $attrs
+    )>];
+
+    let extraClassDeclaration = [{
+        /// Returns the argument types of this function.
+        ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+        /// Returns the result types of this function.
+        ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+
+        /// Returns the region of dom by this func
+        Region *getCallableRegion() { return &getBody(); }
+    }];
+}
+
+// CallOp
+def CallOp : TToy_Op<"call"> {
+    let summary = "call operation";
+    let arguments = (ins
+        FlatSymbolRefAttr : $callee,
+        Variadic<F64Tensor> : $inputs  
+    );
+    let results = (outs
+        F64Tensor
+    );
+    let assemblyFormat = [{
+        $callee `(` $inputs `)` attr-dict `:` functional-type($inputs, results)
+    }];
+    let builders = [
+        OpBuilder<(ins
+            "StringRef" : $callee,
+            "ArrayRef<Value>" : $arguments
+        )>
+    ];
+}
+
+// MulOp: may broadcast
+def MulOp : TToy_Op<"mul"> {
+    let summary = "element-wise mul";
+    let arguments = (ins
+        F64Tensor : $lhs,
+        F64Tensor : $rhs
+    );
+    let results = (outs
+        F64Tensor
+    );
+    
+    let hasCustomAssemblyFormat = 1;
+    let builders = [
+        OpBuilder<(ins
+            "Value" : $lhs,
+            "Value" : $rhs  
+        )>
+    ];
+}
+
+// ReturnOp
+def ReturnOp : TToy_Op<"return"> {
+    let summary = "return operation";
+    let arguments = (ins
+        Variadic<F64Tensor> : $input
+    );
+
+    let assemblyFormat = "($input^ `:` type($input))? attr-dict ";
+
+    let builders = [
+        OpBuilder<(ins), [{
+            build($_builder, $_state, std::nullopt);
+        }]>
+    ];
+
+    let extraClassDeclaration = [{
+        bool hasOperand() { return getNumOperands() != 0; }
+    }];
+
+    // Invoke a static verify method to verify this return operation.
+    let hasVerifier = 1;
+}
+
+///  built-in functions
+
+def PrintOp : TToy_Op<"print"> {
+    let summary = "print builtin operation";
+    let arguments = (ins
+        F64Tensor : $input
+    );
+    
+    let assemblyFormat = "$input attr-dict `:` type($input)";
+}
+
+def ReshapeOp : TToy_Op<"reshape"> {
+    let summary = "tensor-reshape builtin operation";
+    let arguments = (ins 
+        F64Tensor : $input
+    );
+
+    let results = (outs
+        StaticShapeTensorOf<[F64]>
+    );
+    
+    let assemblyFormat = [{
+        `(` $input `:` type($input) `)` attr-dict `to` type(results)        
+    }];
+}
+
+def TransposeOp : TToy_Op<"transpose"> {
+    let summary = "tensor-transpose builtin operation";
+    
+    let arguments = (ins
+        F64Tensor : $input
+    );
+    let results = (outs
+        F64Tensor
+    );
+
+    let assemblyFormat = [{
+        `(` $input `:` type($input) `)` attr-dict `to` type(results)
+    }];
+    let builders = [
+        OpBuilder<(ins
+            "Value" : $input
+        )>];
+
+    let hasVerifier = 1;
+}
+
+#endif // 

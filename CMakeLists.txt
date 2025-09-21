@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
 set(NO_RTTI "-fno-rtti")
 add_definitions(${NO_RTTI})
 set(CMAKE_PREFIX_PATH "/usr/local/lib/cmake") # change to the path where you install llvm & mlir
+set(TABLEGEN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/generated")
+
+message(STATUS "tablegen_output_dir set at ${TABLEGEN_OUTPUT_DIR}")
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     find_package(MLIR REQUIRED CONFIG)
@@ -26,9 +29,9 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 
     message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
     
-    set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
-    set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
-    set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
+    # set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
+    # set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
+    # set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
     list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
     list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
@@ -48,18 +51,22 @@ endif()
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR})
+
 
 # include_directories(${PROJECT_BINARY_DIR}/include)
 # link_directories(${LLVM_BUILD_LIBRARY_DIR})
 # add_definitions(${LLVM_DEFINITIONS})
 
 add_subdirectory(include)
-add_subdirectory(lib)
 add_subdirectory(src)
+add_subdirectory(generated)
 
 message(STATUS "TTOY_SOURCE_FILES: ${TTOY_SOURCE_FILES}")
 
 add_executable(ttoy "${CMAKE_SOURCE_DIR}/src/main.cpp" ${TTOY_SOURCE_FILES})
+
+add_dependencies(ttoy TToyDialectIncGen)
 
 target_link_libraries(ttoy PRIVATE
     MLIRIR

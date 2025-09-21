@@ -3,3 +3,4 @@ build/
 .clangd
 third_party/llvm-project/*
 .cache
+generated/

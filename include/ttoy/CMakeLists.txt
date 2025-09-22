@@ -7,14 +7,14 @@ mlir_tablegen(Ops.h.inc -gen-op-decls)
 mlir_tablegen(Dialect.cpp.inc -gen-dialect-defs)
 mlir_tablegen(Ops.cpp.inc -gen-op-defs)
 
-add_public_tablegen_target(TToyDialectIncGen)
+add_public_tablegen_target(TToy_Dialect_Operations)
 
 add_custom_command(
-  TARGET TToyDialectIncGen POST_BUILD
+  TARGET TToy_Dialect_Operations POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_BINARY_DIR}/*.inc
           ${TABLEGEN_OUTPUT_DIR}/.
 )
 
 
-message(STATUS "MLIR TB files configured.")
+message(STATUS "MLIR dialect & operations configured.")

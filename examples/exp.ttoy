@@ -3,6 +3,17 @@ fn multiply_transpose(a, b) {
   return transpose(a) * transpose(b);
 }
 
+fn redundant_reshape() {
+  let a<2,1> = [1, 2];
+  let b<2,1> = a;
+  let c<2,1> = b;
+  print(c);
+}
+
+fn redundant_transpose(a) {
+  return transpose(transpose(a));
+}
+
 fn main() {
   // Define a variable `a` with shape <2, 3>, initialized with the literal value.
   let a = [[1, 2, 3], [4, 5, 6]];

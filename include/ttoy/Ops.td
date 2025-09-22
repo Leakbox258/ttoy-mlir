@@ -129,7 +129,7 @@ def CallOp : TToy_Op<"call"> {
 }
 
 // MulOp: may broadcast
-def MulOp : TToy_Op<"mul"> {
+def MulOp : TToy_Op<"mul", [Pure]> {
     let summary = "element-wise mul";
     let arguments = (ins
         F64Tensor : $lhs,
@@ -196,9 +196,11 @@ def ReshapeOp : TToy_Op<"reshape"> {
     let assemblyFormat = [{
         `(` $input `:` type($input) `)` attr-dict `to` type(results)        
     }];
+
+    let hasCanonicalizer = 1;
 }
 
-def TransposeOp : TToy_Op<"transpose"> {
+def TransposeOp : TToy_Op<"transpose", [Pure]> {
     let summary = "tensor-transpose builtin operation";
     
     let arguments = (ins
@@ -217,6 +219,7 @@ def TransposeOp : TToy_Op<"transpose"> {
         )>];
 
     let hasVerifier = 1;
+    let hasCanonicalizer = 1;
 }
 
 #endif // 

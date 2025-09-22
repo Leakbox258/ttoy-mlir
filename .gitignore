@@ -4,3 +4,4 @@ build/
 third_party/llvm-project/*
 .cache
 generated/
+compile_commands.json

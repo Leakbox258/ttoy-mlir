@@ -19,7 +19,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 // dialect definitions
 def TToy_Dialect : Dialect {
     let name = "ttoy";
-    let cppNamespace = "::mlir::toy";
+    let cppNamespace = "::mlir::ttoy";
     let summary = "a tensor based toy dialect";
     let description = [{
         mlir extension.
@@ -38,10 +38,10 @@ def ConstantOp : TToy_Op<"constant", [Pure]> {
     let summary = "constant";
     let arguments = (ins 
         F64ElementsAttr : $value
-        );
+    );
     let results = (outs 
         F64Tensor
-        );
+    );
     
     // to custom parse & print method 
     let hasCustomAssemblyFormat = 1;
@@ -50,7 +50,6 @@ def ConstantOp : TToy_Op<"constant", [Pure]> {
             build($_builder, $_state, value.getType(), value);
         }]>,
 
-        // use mlir default
         OpBuilder<(ins "double": $value)>
     ];
 
@@ -63,10 +62,10 @@ def AddOp : TToy_Op<"add", [Pure]> {
     let arguments = (ins 
         F64Tensor : $lhs, 
         F64Tensor : $rhs
-        );
+    );
     let results = (outs 
         F64Tensor
-        );
+    );
 
     let hasCustomAssemblyFormat = 1;
     let builders = [
@@ -75,36 +74,37 @@ def AddOp : TToy_Op<"add", [Pure]> {
 }
 
 // FuncOp
-def FuncOp : TToy_Op<"func", [FunctionOpInterface, IsolatedFromAbove]> {
-    let summary = "function declare and define";
-    let arguments = (ins
-        SymbolNameAttr : $func_name,
-        TypeAttrOf<FunctionType> : $function_type,
-        OptionalAttr<DictArrayAttr> : $arg_attrs,
-        OptionalAttr<DictArrayAttr> : $res_attrs
-    );
-    let regions = (region
-        AnyRegion : $body 
-    );
+def FuncOp : TToy_Op<"func", [
+    FunctionOpInterface, IsolatedFromAbove
+  ]> {
+  let summary = "user defined function operation";
+  let arguments = (ins
+    SymbolNameAttr:$sym_name,
+    TypeAttrOf<FunctionType>:$function_type,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs
+  );
+  let regions = (region AnyRegion:$body);
 
-    let hasCustomAssemblyFormat = 1;
-    let skipDefaultBuilders = 1;
-    let builders = [OpBuilder<(ins
-        "StringRef" : $name,
-        "FunctionType" : $type,
-        CArg<"ArrayRef<NamedAttribute>", "{}"> : $attrs
-    )>];
+  let builders = [OpBuilder<(ins
+    "StringRef" : $name,
+    "FunctionType" : $type,
+    CArg<"ArrayRef<NamedAttribute>", "{}"> : $attrs)
+  >];
 
-    let extraClassDeclaration = [{
-        /// Returns the argument types of this function.
-        ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+  let extraClassDeclaration = [{
 
-        /// Returns the result types of this function.
-        ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+    /// Returns the argument types of this function.
+    ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
 
-        /// Returns the region of dom by this func
-        Region *getCallableRegion() { return &getBody(); }
-    }];
+    /// Returns the result types of this function.
+    ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+
+    Region *getCallableRegion() { return &getBody(); }
+  }];
+
+  let hasCustomAssemblyFormat = 1;
+  let skipDefaultBuilders = 1;
 }
 
 // CallOp
@@ -149,7 +149,8 @@ def MulOp : TToy_Op<"mul"> {
 }
 
 // ReturnOp
-def ReturnOp : TToy_Op<"return"> {
+def ReturnOp : TToy_Op<"return", [Pure, HasParent<"FuncOp">,
+                                 Terminator]> {
     let summary = "return operation";
     let arguments = (ins
         Variadic<F64Tensor> : $input

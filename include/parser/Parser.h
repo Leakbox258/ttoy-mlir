@@ -408,7 +408,7 @@ class Parser {
         auto loc = lexer.getLastLocation();
 
         if (lexer.getCurToken() != tok_def_fn)
-            return parseError<PrototypeAST>("def", "in prototype");
+            return parseError<PrototypeAST>("fn", "in prototype");
         lexer.consume(tok_def_fn);
 
         if (lexer.getCurToken() != tok_identifier)

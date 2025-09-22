@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(ttoy)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to conform to")
 
 set(NO_RTTI "-fno-rtti")
 add_definitions(${NO_RTTI})
@@ -72,6 +72,7 @@ target_link_libraries(ttoy PRIVATE
     MLIRIR
     MLIRParser
     MLIRSupport
+    MLIRFunctionInterfaces
     LLVMSupport
     LLVMCore
 )

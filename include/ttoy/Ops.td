@@ -15,6 +15,9 @@ include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/FunctionInterfaces.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/CastInterfaces.td"
+
+include "pass/ShapeInferenceOpInterface.td"
 
 // dialect definitions
 def TToy_Dialect : Dialect {
@@ -57,8 +60,8 @@ def ConstantOp : TToy_Op<"constant", [Pure]> {
 }
 
 // AddOp: may broadcast
-def AddOp : TToy_Op<"add", [Pure]> {
-    let summary = "add";
+def AddOp : TToy_Op<"add", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "element-wise add";
     let arguments = (ins 
         F64Tensor : $lhs, 
         F64Tensor : $rhs
@@ -108,7 +111,8 @@ def FuncOp : TToy_Op<"func", [
 }
 
 // CallOp
-def CallOp : TToy_Op<"call"> {
+def CallOp : TToy_Op<"call",
+[DeclareOpInterfaceMethods<CallOpInterface>]> {
     let summary = "call operation";
     let arguments = (ins
         FlatSymbolRefAttr : $callee,
@@ -129,7 +133,7 @@ def CallOp : TToy_Op<"call"> {
 }
 
 // MulOp: may broadcast
-def MulOp : TToy_Op<"mul", [Pure]> {
+def MulOp : TToy_Op<"mul", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "element-wise mul";
     let arguments = (ins
         F64Tensor : $lhs,
@@ -200,7 +204,7 @@ def ReshapeOp : TToy_Op<"reshape"> {
     let hasCanonicalizer = 1;
 }
 
-def TransposeOp : TToy_Op<"transpose", [Pure]> {
+def TransposeOp : TToy_Op<"transpose", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "tensor-transpose builtin operation";
     
     let arguments = (ins
@@ -220,6 +224,20 @@ def TransposeOp : TToy_Op<"transpose", [Pure]> {
 
     let hasVerifier = 1;
     let hasCanonicalizer = 1;
+}
+
+def CastOp : TToy_Op<"cast", [
+    DeclareOpInterfaceMethods<CastOpInterface>,
+    DeclareOpInterfaceMethods<ShapeInferenceOpInterface>,
+    Pure,
+    SameOperandsAndResultShape    
+]> {
+    let summary = "shape cast operation";
+    
+    let arguments = (ins F64Tensor : $input);
+    let results = (outs F64Tensor : $output);
+
+    let assemblyFormat = "$input attr-dict `:` type($input) `to` type($output)";
 }
 
 #endif // 

@@ -66,7 +66,11 @@ message(STATUS "TTOY_SOURCE_FILES: ${TTOY_SOURCE_FILES}")
 
 add_executable(ttoy "${CMAKE_SOURCE_DIR}/src/main.cpp" ${TTOY_SOURCE_FILES})
 
-add_dependencies(ttoy TToy_Dialect_Operations TToy_PatternMatch)
+add_dependencies(ttoy 
+    TToy_Dialect_Operations 
+    TToy_PatternMatch
+    TToy_ShapeInferenceOpInterface
+)
 
 target_link_libraries(ttoy PRIVATE
     MLIRIR
@@ -75,6 +79,7 @@ target_link_libraries(ttoy PRIVATE
     MLIRFunctionInterfaces
     MLIRPass
     MLIRTransforms
+    MLIRCastInterfaces
     LLVMSupport
     LLVMCore
 )

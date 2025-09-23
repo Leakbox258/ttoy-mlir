@@ -89,6 +89,8 @@ class MLIRGenImpl {
     }
 
     mlir::ttoy::FuncOp mlirGen(FunctionAST& func_ast) {
+        // set inline private (set entry)
+
         llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value> var_scope(
             symbolTable);
 
@@ -134,6 +136,10 @@ class MLIRGenImpl {
         } else if (returnOp.hasOperand()) {
             function.setType(builder.getFunctionType(
                 function.getFunctionType().getInputs(), getType(VarType{})));
+        }
+
+        if (func_ast.getProto()->getName() != "main") {
+            function.setPrivate();
         }
 
         return function;

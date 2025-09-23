@@ -14,6 +14,7 @@
 #include "parser/AST.h"
 #include "parser/Lexer.h"
 #include "parser/Parser.h"
+#include "pass/Passes.hpp"
 #include "ttoy/Dialect.hpp"
 #include "ttoy/IRGen.hpp"
 
@@ -124,8 +125,12 @@ int dumpMLIR() {
         if (mlir::failed(mlir::applyPassManagerCLOptions(pm)))
             return 4;
 
-        // Add a run of the canonicalizer to optimize the mlir module.
-        pm.addNestedPass<mlir::ttoy::FuncOp>(mlir::createCanonicalizerPass());
+        pm.addPass(mlir::createInlinerPass());
+
+        mlir::OpPassManager& optPM = pm.nest<mlir::ttoy::FuncOp>();
+        optPM.addPass(mlir::ttoy::createShapeInferencePass());
+        optPM.addPass(mlir::createCanonicalizerPass());
+        optPM.addPass(mlir::createCSEPass());
         if (mlir::failed(pm.run(*module)))
             return 4;
     }

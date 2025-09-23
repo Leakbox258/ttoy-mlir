@@ -12,11 +12,16 @@
 #define TTOY_DIALECT_HPP
 
 #include <mlir/Bytecode/BytecodeOpInterface.h>
+#include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/Dialect.h>
 #include <mlir/IR/SymbolTable.h>
 #include <mlir/Interfaces/CallInterfaces.h>
+#include <mlir/Interfaces/CastInterfaces.h>
 #include <mlir/Interfaces/FunctionInterfaces.h>
 #include <mlir/Interfaces/SideEffectInterfaces.h>
+
+// include decls from ShapeInferenceOpInferface.td
+#include "pass/ShapeInferenceOpInterface.hpp"
 
 // include from generate dir
 #include "generated/Dialect.h.inc"

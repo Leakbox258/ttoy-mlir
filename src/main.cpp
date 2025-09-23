@@ -193,6 +193,8 @@ int main(int argc, char** argv) {
         return dumpAST();
     case Action::DumpMLIR:
         return dumpMLIR();
+    case Action::DumpMLIRAffine:
+        return dumpMLIR();
     default:
         llvm::errs()
             << "No action specified (parsing only?), use -emit=<action>\n";

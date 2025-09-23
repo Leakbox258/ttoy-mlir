@@ -16,6 +16,8 @@ class Pass;
 
 namespace ttoy {
 std::unique_ptr<Pass> createShapeInferencePass();
+
+std::unique_ptr<mlir::Pass> createLowerToAffinePass();
 } // namespace ttoy
 } // namespace mlir
 

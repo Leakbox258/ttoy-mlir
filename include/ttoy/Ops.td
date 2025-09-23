@@ -181,7 +181,7 @@ def ReturnOp : TToy_Op<"return", [Pure, HasParent<"FuncOp">,
 def PrintOp : TToy_Op<"print"> {
     let summary = "print builtin operation";
     let arguments = (ins
-        F64Tensor : $input
+        AnyTypeOf<[F64Tensor, F64MemRef]> : $input
     );
     
     let assemblyFormat = "$input attr-dict `:` type($input)";

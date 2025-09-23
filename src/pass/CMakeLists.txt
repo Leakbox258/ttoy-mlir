@@ -2,5 +2,6 @@ set(TTOY_SOURCE_FILES
     ${TTOY_SOURCE_FILES}
     ${CMAKE_CURRENT_SOURCE_DIR}/PatternMatch.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ShapeInferencePass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LowerToAffine.cpp
     PARENT_SCOPE
 )

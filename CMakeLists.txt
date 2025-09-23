@@ -80,6 +80,12 @@ target_link_libraries(ttoy PRIVATE
     MLIRPass
     MLIRTransforms
     MLIRCastInterfaces
+    
+    MLIRMemRefDialect
+    MLIRFuncDialect
+    MLIRAffineDialect
+    MLIRAffineTransforms
+
     LLVMSupport
     LLVMCore
 )

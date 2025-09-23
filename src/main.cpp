@@ -25,6 +25,9 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <mlir/Dialect/Affine/Passes.h>
+#include <mlir/Dialect/Func/IR/FuncOps.h>
+
 #include <mlir/IR/AsmState.h>
 #include <mlir/IR/BuiltinOps.h>
 #include <mlir/IR/MLIRContext.h>
@@ -56,12 +59,15 @@ static cl::opt<enum InputType>
                                     "load the input file as an MLIR file")));
 
 namespace {
-enum Action { None, DumpAST, DumpMLIR };
+enum Action { None, DumpAST, DumpMLIR, DumpMLIRAffine };
 } // namespace
-static cl::opt<enum Action> emitAction(
-    "emit", cl::desc("Select the kind of output desired"),
-    cl::values(clEnumValN(DumpAST, "ast", "output the AST dump")),
-    cl::values(clEnumValN(DumpMLIR, "mlir", "output the MLIR dump")));
+static cl::opt<enum Action>
+    emitAction("emit", cl::desc("Select the kind of output desired"),
+               cl::values(clEnumValN(DumpAST, "ast", "output the AST dump")),
+               cl::values(clEnumValN(DumpMLIR, "mlir", "output the MLIR dump")),
+               cl::values(clEnumValN(
+                   DumpMLIRAffine, "mlir-affine",
+                   "output the MLIR dump after lowing to affine dialect")));
 
 static cl::opt<bool> enableOpt("opt", cl::desc("Enable optimizations"));
 
@@ -120,12 +126,15 @@ int dumpMLIR() {
     if (int error = loadMLIR(sourceMgr, context, module))
         return error;
 
-    if (enableOpt) {
-        mlir::PassManager pm(module.get()->getName());
-        // Apply any generic pass manager command line options and run the
-        // pipeline.
-        if (mlir::failed(mlir::applyPassManagerCLOptions(pm)))
-            return 4;
+    mlir::PassManager pm(module.get()->getName());
+    // Apply any generic pass manager command line options and run the
+    // pipeline.
+    if (mlir::failed(mlir::applyPassManagerCLOptions(pm)))
+        return 4;
+
+    bool isLoweringToAffine = emitAction >= Action::DumpMLIRAffine;
+
+    if (enableOpt || isLoweringToAffine) {
 
         pm.addPass(mlir::createInlinerPass());
 
@@ -133,10 +142,25 @@ int dumpMLIR() {
         optPM.addPass(mlir::ttoy::createShapeInferencePass());
         optPM.addPass(mlir::createCanonicalizerPass());
         optPM.addPass(mlir::createCSEPass());
-
-        if (mlir::failed(pm.run(*module)))
-            return 4;
     }
+
+    if (isLoweringToAffine) {
+        pm.addPass(mlir::ttoy::createLowerToAffinePass());
+
+        // Add a few cleanups post lowering.
+        mlir::OpPassManager& optPM = pm.nest<mlir::func::FuncOp>();
+        optPM.addPass(mlir::createCanonicalizerPass());
+        optPM.addPass(mlir::createCSEPass());
+
+        // tailing opts based on affine dialect
+        if (enableOpt) {
+            optPM.addPass(mlir::affine::createLoopFusionPass());
+            optPM.addPass(mlir::affine::createAffineScalarReplacementPass());
+        }
+    }
+
+    if (mlir::failed(pm.run(*module)))
+        return 4;
 
     module->dump();
     return 0;

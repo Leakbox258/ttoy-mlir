@@ -90,8 +90,8 @@ struct ShapeInferencePass
     }
 
     static bool allOperansInferred(Operation* op) {
-        return llvm::any_of(op->getOperandTypes(), [](Type operandType) {
-            return !llvm::isa<RankedTensorType>(operandType);
+        return llvm::all_of(op->getOperandTypes(), [](Type operandType) {
+            return llvm::isa<RankedTensorType>(operandType);
         });
     }
 };

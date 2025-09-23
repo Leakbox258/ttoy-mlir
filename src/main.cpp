@@ -40,18 +40,20 @@ using namespace ttoy;
 namespace cl = llvm::cl;
 
 static cl::opt<std::string> inputFilename(cl::Positional,
-                                          cl::desc("<input toy file>"),
+                                          cl::desc("<input ttoy file>"),
                                           cl::init("-"),
                                           cl::value_desc("filename"));
 
 namespace {
-enum InputType { Toy, MLIR };
+enum InputType { TToy, MLIR };
 } // namespace
-static cl::opt<enum InputType> inputType(
-    "x", cl::init(Toy), cl::desc("Decided the kind of output desired"),
-    cl::values(clEnumValN(Toy, "toy", "load the input file as a Toy source.")),
-    cl::values(clEnumValN(MLIR, "mlir",
-                          "load the input file as an MLIR file")));
+static cl::opt<enum InputType>
+    inputType("x", cl::init(TToy),
+              cl::desc("Decided the kind of output desired"),
+              cl::values(clEnumValN(TToy, "ttoy",
+                                    "load the input file as a TToy source.")),
+              cl::values(clEnumValN(MLIR, "mlir",
+                                    "load the input file as an MLIR file")));
 
 namespace {
 enum Action { None, DumpAST, DumpMLIR };
@@ -63,7 +65,7 @@ static cl::opt<enum Action> emitAction(
 
 static cl::opt<bool> enableOpt("opt", cl::desc("Enable optimizations"));
 
-/// Returns a Toy AST resulting from parsing the file or a nullptr on error.
+/// Returns a TToy AST resulting from parsing the file or a nullptr on error.
 std::unique_ptr<ttoy::ModuleAST> parseInputFile(llvm::StringRef filename) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr =
         llvm::MemoryBuffer::getFileOrSTDIN(filename);
@@ -79,7 +81,7 @@ std::unique_ptr<ttoy::ModuleAST> parseInputFile(llvm::StringRef filename) {
 
 int loadMLIR(llvm::SourceMgr& sourceMgr, mlir::MLIRContext& context,
              mlir::OwningOpRef<mlir::ModuleOp>& module) {
-    // Handle '.toy' input to the compiler.
+    // Handle '.ttoy' input to the compiler.
     if (inputType != InputType::MLIR &&
         !llvm::StringRef(inputFilename).ends_with(".mlir")) {
         auto moduleAST = parseInputFile(inputFilename);
@@ -131,6 +133,7 @@ int dumpMLIR() {
         optPM.addPass(mlir::ttoy::createShapeInferencePass());
         optPM.addPass(mlir::createCanonicalizerPass());
         optPM.addPass(mlir::createCSEPass());
+
         if (mlir::failed(pm.run(*module)))
             return 4;
     }
@@ -141,7 +144,7 @@ int dumpMLIR() {
 
 int dumpAST() {
     if (inputType == InputType::MLIR) {
-        llvm::errs() << "Can't dump a Toy AST when the input is MLIR\n";
+        llvm::errs() << "Can't dump a TToy AST when the input is MLIR\n";
         return 5;
     }
 
@@ -159,7 +162,7 @@ int main(int argc, char** argv) {
     mlir::registerMLIRContextCLOptions();
     mlir::registerPassManagerCLOptions();
 
-    cl::ParseCommandLineOptions(argc, argv, "toy compiler\n");
+    cl::ParseCommandLineOptions(argc, argv, "ttoy compiler\n");
 
     switch (emitAction) {
     case Action::DumpAST:

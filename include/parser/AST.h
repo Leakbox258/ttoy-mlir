@@ -1,4 +1,5 @@
-//===- AST.h - Node definition for the Toy AST ----------------------------===//
+//===- AST.h - Node definition for the TToy AST
+//----------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the AST for the Toy language. It is optimized for
+// This file implements the AST for the TToy language. It is optimized for
 // simplicity, not efficiency. The AST forms a tree structure where each node
 // references its children using std::unique_ptr<>.
 //

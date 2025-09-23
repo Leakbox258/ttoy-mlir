@@ -1,4 +1,5 @@
-//===- AST.cpp - Helper for printing out the Toy AST ----------------------===//
+//===- AST.cpp - Helper for printing out the TToy AST
+//----------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the AST dump for the Toy language.
+// This file implements the AST dump for the TToy language.
 //
 //===----------------------------------------------------------------------===//
 

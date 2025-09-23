@@ -257,7 +257,7 @@ class MLIRGenImpl {
         if (callee == "transpose") {
             if (call_ast.getArgs().size() != 1) {
                 emitError(location,
-                          "MLIR codegen encountered an error: toy.transpose "
+                          "MLIR codegen encountered an error: ttoy.transpose "
                           "does not accept multiple arguments");
                 return nullptr;
             }

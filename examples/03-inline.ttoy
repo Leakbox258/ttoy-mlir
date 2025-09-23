@@ -1,0 +1,23 @@
+/// ttoyc will inline all sub-funcs in order to do shape infer.
+/// The mlir generic inliner will also perform simplifications
+
+fn redundant_transpose(a) {
+    return transpose(transpose(a));
+}
+
+fn redundant_reshape() {
+    let a<2,1> = [1, 2];
+    let b<2,1> = a;
+    let c<2,1> = b;
+    return c;
+}
+
+fn main() {
+    let a = [[1, 2, 3], [4, 5, 6]];
+
+    let b = redundant_transpose(a);
+    print(b);
+
+    let c = redundant_reshape();
+    return c;
+}

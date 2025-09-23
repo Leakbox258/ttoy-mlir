@@ -23,7 +23,7 @@ include "pass/ShapeInferenceOpInterface.td"
 def TToy_Dialect : Dialect {
     let name = "ttoy";
     let cppNamespace = "::mlir::ttoy";
-    let summary = "a tensor based toy dialect";
+    let summary = "a tensor based ttoy dialect";
     let description = [{
         mlir extension.
     }];

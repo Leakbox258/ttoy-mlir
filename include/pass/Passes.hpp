@@ -18,6 +18,8 @@ namespace ttoy {
 std::unique_ptr<Pass> createShapeInferencePass();
 
 std::unique_ptr<mlir::Pass> createLowerToAffinePass();
+
+std::unique_ptr<mlir::Pass> createLowerToLLVMPass();
 } // namespace ttoy
 } // namespace mlir
 

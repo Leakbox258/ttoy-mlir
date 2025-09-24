@@ -3,5 +3,6 @@ set(TTOY_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/PatternMatch.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ShapeInferencePass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LowerToAffine.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LowerToLLVM.cpp
     PARENT_SCOPE
 )

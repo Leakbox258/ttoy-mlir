@@ -73,27 +73,15 @@ add_dependencies(ttoy
 )
 
 target_link_libraries(ttoy PRIVATE
-    MLIRIR
-    MLIRParser
-    MLIRSupport
-    MLIRFunctionInterfaces
-    MLIRPass
-    MLIRTransforms
-    MLIRCastInterfaces
-    MLIRLLVMIRToLLVMTranslation
     MLIRFuncAllExtensions
-    MLIRCAPIRegisterEverything
+    MLIRLLVMCommonConversion
     MLIRExecutionEngine
+    MLIRFuncToLLVM
 
-    MLIRMemRefDialect
-    MLIRFuncDialect
-    MLIRAffineDialect
+    MLIRMemRefToLLVM
     MLIRAffineTransforms
-    MLIRLLVMDialect
-    
-    LLVMSupport
-    LLVMCore
-    LLVMExegesisX86
+    MLIRAffineToStandard
+    MLIRSCFToControlFlow
 )
 
 target_compile_definitions(ttoy PRIVATE

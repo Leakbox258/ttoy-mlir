@@ -64,7 +64,7 @@ add_subdirectory(generated)
 
 message(STATUS "TTOY_SOURCE_FILES: ${TTOY_SOURCE_FILES}")
 
-add_executable(ttoy "${CMAKE_SOURCE_DIR}/src/main.cpp" ${TTOY_SOURCE_FILES})
+add_executable(ttoy "${CMAKE_SOURCE_DIR}/src/ttoyc.cpp" ${TTOY_SOURCE_FILES})
 
 add_dependencies(ttoy 
     TToy_Dialect_Operations 

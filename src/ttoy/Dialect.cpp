@@ -218,6 +218,24 @@ void AddOp::print(mlir::OpAsmPrinter& printer) {
 
 void AddOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
+// SubOp
+void SubOp::build(mlir::OpBuilder& builder, mlir::OperationState& state,
+                  mlir::Value lhs, mlir::Value rhs) {
+    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+    state.addOperands({lhs, rhs});
+}
+
+mlir::ParseResult SubOp::parse(mlir::OpAsmParser& parser,
+                               mlir::OperationState& result) {
+    return parseBinaryOp(parser, result);
+}
+
+void SubOp::print(mlir::OpAsmPrinter& printer) {
+    printBinaryOp(printer, *this);
+}
+
+void SubOp::inferShapes() { getResult().setType(getLhs().getType()); }
+
 // MulOp
 void MulOp::build(mlir::OpBuilder& builder, mlir::OperationState& state,
                   mlir::Value lhs, mlir::Value rhs) {
@@ -235,6 +253,24 @@ void MulOp::print(mlir::OpAsmPrinter& printer) {
 }
 
 void MulOp::inferShapes() { getResult().setType(getLhs().getType()); }
+
+// DivOp
+void DivOp::build(mlir::OpBuilder& builder, mlir::OperationState& state,
+                  mlir::Value lhs, mlir::Value rhs) {
+    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+    state.addOperands({lhs, rhs});
+}
+
+mlir::ParseResult DivOp::parse(mlir::OpAsmParser& parser,
+                               mlir::OperationState& result) {
+    return parseBinaryOp(parser, result);
+}
+
+void DivOp::print(mlir::OpAsmPrinter& printer) {
+    printBinaryOp(printer, *this);
+}
+
+void DivOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 // FuncOp
 void FuncOp::build(mlir::OpBuilder& builder, mlir::OperationState& state,

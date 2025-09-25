@@ -59,7 +59,7 @@ def ConstantOp : TToy_Op<"constant", [Pure]> {
     let hasVerifier = 1;
 }
 
-// AddOp: may broadcast
+// AddOp
 def AddOp : TToy_Op<"add", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "element-wise add";
     let arguments = (ins 
@@ -73,6 +73,63 @@ def AddOp : TToy_Op<"add", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInte
     let hasCustomAssemblyFormat = 1;
     let builders = [
         OpBuilder<(ins "Value" : $lhs, "Value" : $rhs)>
+    ];
+}
+
+// SubOp
+def SubOp : TToy_Op<"sub", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "element-wise sub";
+    let arguments = (ins
+        F64Tensor : $lhs,
+        F64Tensor : $rhs
+    );
+    let results = (outs
+        F64Tensor
+    );
+
+    let hasCustomAssemblyFormat = 1;
+    let builders = [
+        OpBuilder<(ins "Value" : $lhs, "Value" : $rhs)>
+    ];
+}
+
+// MulOp
+def MulOp : TToy_Op<"mul", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "element-wise mul";
+    let arguments = (ins
+        F64Tensor : $lhs,
+        F64Tensor : $rhs
+    );
+    let results = (outs
+        F64Tensor
+    );
+    
+    let hasCustomAssemblyFormat = 1;
+    let builders = [
+        OpBuilder<(ins
+            "Value" : $lhs,
+            "Value" : $rhs  
+        )>
+    ];
+}
+
+// DivOp
+def DivOp : TToy_Op<"div", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "element-wise Div";
+    let arguments = (ins
+        F64Tensor : $lhs,
+        F64Tensor : $rhs
+    );
+    let results = (outs
+        F64Tensor
+    );
+    
+    let hasCustomAssemblyFormat = 1;
+    let builders = [
+        OpBuilder<(ins
+            "Value" : $lhs,
+            "Value" : $rhs  
+        )>
     ];
 }
 
@@ -128,26 +185,6 @@ def CallOp : TToy_Op<"call",
         OpBuilder<(ins
             "StringRef" : $callee,
             "ArrayRef<Value>" : $arguments
-        )>
-    ];
-}
-
-// MulOp: may broadcast
-def MulOp : TToy_Op<"mul", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
-    let summary = "element-wise mul";
-    let arguments = (ins
-        F64Tensor : $lhs,
-        F64Tensor : $rhs
-    );
-    let results = (outs
-        F64Tensor
-    );
-    
-    let hasCustomAssemblyFormat = 1;
-    let builders = [
-        OpBuilder<(ins
-            "Value" : $lhs,
-            "Value" : $rhs  
         )>
     ];
 }

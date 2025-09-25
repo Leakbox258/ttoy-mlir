@@ -342,7 +342,7 @@ int runJit(mlir::ModuleOp module) {
     return 0;
 }
 
-int BuildExecutable(mlir::ModuleOp module, llvm::StringRef obj_path) {
+int BuildExecutable(mlir::ModuleOp module) {
     mlir::registerBuiltinDialectTranslation(*module.getContext());
     mlir::registerLLVMDialectTranslation(*module.getContext());
 
@@ -453,7 +453,7 @@ int main(int argc, char** argv) {
     }
 
     if (emitAction == Action::BuildExe) {
-        return BuildExecutable(*module, outputFilename);
+        return BuildExecutable(*module);
     }
 
     llvm::errs() << "No action specified (parsing only?), use -emit=<action>\n";

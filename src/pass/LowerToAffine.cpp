@@ -137,6 +137,8 @@ struct BinaryOpLowering : public ConversionPattern {
 };
 using AddOpLowering = BinaryOpLowering<ttoy::AddOp, arith::AddFOp>;
 using MulOpLowering = BinaryOpLowering<ttoy::MulOp, arith::MulFOp>;
+using SubOpLowering = BinaryOpLowering<ttoy::SubOp, arith::SubFOp>;
+using DivOpLowering = BinaryOpLowering<ttoy::DivOp, arith::DivFOp>;
 
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: Constant operations
@@ -341,10 +343,9 @@ void TToyToAffineLoweringPass::runOnOperation() {
 
     // the set of patterns that will lower the TToy operations
     RewritePatternSet patterns(&getContext());
-    patterns
-        .add<AddOpLowering, ConstantOpLowering, FuncOpLowering, MulOpLowering,
-             PrintOpLowering, ReturnOpLowering, TransposeOpLowering>(
-            &getContext());
+    patterns.add<AddOpLowering, SubOpLowering, ConstantOpLowering,
+                 FuncOpLowering, MulOpLowering, DivOpLowering, PrintOpLowering,
+                 ReturnOpLowering, TransposeOpLowering>(&getContext());
 
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {

@@ -14,8 +14,8 @@
 #include "parser/AST.h"
 #include "parser/Lexer.h"
 #include "ttoy/Dialect.hpp"
+#include "llvm/Support/raw_ostream.h"
 
-#include <cstdio>
 #include <functional>
 #include <mlir/IR/Block.h>
 #include <mlir/IR/Builders.h>
@@ -47,7 +47,8 @@ class MLIRGenImpl {
   private:
     mlir::ModuleOp ttoy_module;
     mlir::OpBuilder builder;
-    llvm::ScopedHashTable<llvm::StringRef, mlir::Value> symbolTable;
+    llvm::ScopedHashTable<llvm::StringRef, mlir::Value> symbol_table;
+    bool err_detected = false;
 
     /// location when building from AST
     mlir::Location loc(const Location& loc) {
@@ -57,10 +58,11 @@ class MLIRGenImpl {
 
     /// declartion of vars, including handling scopes
     llvm::LogicalResult declare(llvm::StringRef var, mlir::Value value) {
-        if (symbolTable.count(var)) {
+        if (symbol_table.count(var)) {
+            err_detected = true;
             return mlir::failure();
         }
-        symbolTable.insert(var, value);
+        symbol_table.insert(var, value);
         return mlir::success();
     }
 
@@ -92,7 +94,7 @@ class MLIRGenImpl {
         // set inline private (set entry)
 
         llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value> var_scope(
-            symbolTable);
+            symbol_table);
 
         builder.setInsertionPointToEnd(ttoy_module.getBody());
         mlir::ttoy::FuncOp function = mlirGen(*func_ast.getProto());
@@ -111,6 +113,10 @@ class MLIRGenImpl {
 
             if (failed(declare(std::get<0>(nameValue)->getName(),
                                std::get<1>(nameValue)))) {
+                llvm::errs() << "Failed to declare a named variable"
+                             << std::get<0>(nameValue)->getName() << " at "
+                             << loc(func_ast.getProto()->loc()) << "\n";
+
                 return nullptr;
             }
         }
@@ -161,8 +167,12 @@ class MLIRGenImpl {
         switch (binary_ast.getOp()) {
         case '+':
             return builder.create<mlir::ttoy::AddOp>(location, lhs, rhs);
+        case '-':
+            return builder.create<mlir::ttoy::SubOp>(location, lhs, rhs);
         case '*':
             return builder.create<mlir::ttoy::MulOp>(location, lhs, rhs);
+        case '/':
+            return builder.create<mlir::ttoy::DivOp>(location, lhs, rhs);
         }
 
         mlir::emitError(location, "invalid binary operation '")
@@ -177,8 +187,10 @@ class MLIRGenImpl {
         mlir::Value expr = nullptr;
 
         if (ret_ast.getExpr().has_value()) {
-            if (!(expr = mlirGen(**ret_ast.getExpr())))
+            if (!(expr = mlirGen(**ret_ast.getExpr()))) {
+                err_detected = true;
                 return mlir::failure();
+            }
         }
 
         builder.create<mlir::ttoy::ReturnOp>(
@@ -189,7 +201,7 @@ class MLIRGenImpl {
     }
 
     mlir::Value mlirGen(VariableExprAST& expr_ast) {
-        if (auto variable = symbolTable.lookup(expr_ast.getName())) {
+        if (auto variable = symbol_table.lookup(expr_ast.getName())) {
             return variable;
         }
 
@@ -270,8 +282,10 @@ class MLIRGenImpl {
 
     llvm::LogicalResult mlirGen(PrintExprAST& call) {
         auto arg = mlirGen(*call.getArg());
-        if (!arg)
+        if (!arg) {
+            err_detected = true;
             return mlir::failure();
+        }
 
         builder.create<mlir::ttoy::PrintOp>(loc(call.loc()), arg);
         return mlir::success();
@@ -321,21 +335,28 @@ class MLIRGenImpl {
         }
 
         // Register the value in the symbol table.
-        if (failed(declare(vardecl.getName(), value)))
+        if (failed(declare(vardecl.getName(), value))) {
+            llvm::errs() << "Failed to declare a named value "
+                         << vardecl.getName() << " at " << value.getLoc()
+                         << "\n";
             return nullptr;
+        }
+
         return value;
     }
 
     llvm::LogicalResult mlirGen(ExprASTList& block_ast) {
         llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value> varScope(
-            symbolTable);
+            symbol_table);
         for (auto& expr : block_ast) {
             // Specific handling for variable declarations, return statement,
             // and print. These can only appear in block list and not in nested
             // expressions.
             if (auto* vardecl = llvm::dyn_cast<VarDeclExprAST>(expr.get())) {
-                if (!mlirGen(*vardecl))
+                if (!mlirGen(*vardecl)) {
+                    err_detected = true;
                     return mlir::failure();
+                }
                 continue;
             }
             if (auto* ret = llvm::dyn_cast<ReturnExprAST>(expr.get()))
@@ -347,8 +368,10 @@ class MLIRGenImpl {
             }
 
             // Generic expression dispatch codegen.
-            if (!mlirGen(*expr))
+            if (!mlirGen(*expr)) {
+                err_detected = true;
                 return mlir::failure();
+            }
         }
         return mlir::success();
     }
@@ -363,6 +386,11 @@ class MLIRGenImpl {
 
         for (FunctionAST& f : module_ast) {
             mlirGen(f);
+        }
+
+        if (err_detected) {
+            ttoy_module->emitError("module IR gen error");
+            return nullptr;
         }
 
         if (failed(mlir::verify(ttoy_module))) {

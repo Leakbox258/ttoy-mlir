@@ -17,16 +17,26 @@
 #include "pass/Passes.hpp"
 #include "ttoy/Dialect.hpp"
 #include "ttoy/IRGen.hpp"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/Support/FileSystem.h"
 
+#include <cstdlib>
+#include <format>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/Support/CodeGen.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
 
 #include <mlir/Dialect/Affine/Passes.h>
 #include <mlir/Dialect/Func/Extensions/AllExtensions.h>
@@ -54,6 +64,7 @@
 
 #include <cassert>
 #include <memory>
+#include <optional>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -64,7 +75,11 @@ namespace cl = llvm::cl;
 static cl::opt<std::string> inputFilename(cl::Positional,
                                           cl::desc("<input ttoy file>"),
                                           cl::init("-"),
-                                          cl::value_desc("filename"));
+                                          cl::value_desc("input filename"));
+
+static cl::opt<std::string> outputFilename("o", cl::desc("<output ttoy file>"),
+                                           cl::init("-"),
+                                           cl::value_desc("output filename"));
 
 namespace {
 enum InputType { TToy, MLIR };
@@ -86,6 +101,7 @@ enum Action {
     DumpMLIRLLVM,
     DumpLLVMIR,
     RunJIT,
+    BuildExe,
 };
 } // namespace
 
@@ -100,7 +116,9 @@ static cl::opt<enum Action> emitAction(
     cl::values(clEnumValN(DumpLLVMIR, "llvm", "output the LLVM IR dump")),
     cl::values(
         clEnumValN(RunJIT, "jit",
-                   "JIT the code and run it by invoking the main function")));
+                   "JIT the code and run it by invoking the main function")),
+    cl::values(clEnumValN(BuildExe, "exe",
+                          "Build objfile and link as an exe")));
 
 static cl::opt<bool> enableOpt("opt", cl::desc("Enable optimizations"));
 
@@ -219,6 +237,23 @@ int dumpAST() {
     return 0;
 }
 
+int dumpMLIR(mlir::ModuleOp module) {
+    // Action::DumpMLIR DumpMLIRAffine DumpMLIRLLVM
+
+    std::error_code ec;
+    llvm::raw_fd_ostream dst(outputFilename, ec, llvm::sys::fs::OF_None);
+
+    if (ec) {
+        llvm::errs() << "Failed to open an output file\n";
+        return -1;
+    }
+
+    module->print(dst);
+    dst.flush();
+
+    return 0;
+}
+
 int dumpLLVMIR(mlir::ModuleOp module) {
     // Register the translation to LLVM IR with the MLIR context.
     mlir::registerBuiltinDialectTranslation(*module->getContext());
@@ -259,7 +294,18 @@ int dumpLLVMIR(mlir::ModuleOp module) {
         llvm::errs() << "Failed to optimize LLVM IR " << err << "\n";
         return -1;
     }
-    llvm::errs() << *llvmModule << "\n";
+
+    std::error_code ec;
+    llvm::raw_fd_ostream dst(outputFilename, ec, llvm::sys::fs::OF_None);
+
+    if (ec) {
+        llvm::errs() << "Failed to open output file\n";
+        return -1;
+    }
+
+    llvmModule->print(dst, nullptr);
+    dst.flush();
+
     return 0;
 }
 
@@ -274,23 +320,97 @@ int runJit(mlir::ModuleOp module) {
     mlir::registerLLVMDialectTranslation(*module->getContext());
 
     // An optimization pipeline to use within the execution engine.
-    auto optPipeline = mlir::makeOptimizingTransformer(
+    auto opt_pipeline = mlir::makeOptimizingTransformer(
         /*optLevel=*/enableOpt ? 3 : 0, /*sizeLevel=*/0,
         /*targetMachine=*/nullptr);
 
     // Create an MLIR execution engine. The execution engine eagerly
     // JIT-compiles the module.
-    mlir::ExecutionEngineOptions engineOptions;
-    engineOptions.transformer = optPipeline;
-    auto maybeEngine = mlir::ExecutionEngine::create(module, engineOptions);
-    assert(maybeEngine && "failed to construct an execution engine");
-    auto& engine = maybeEngine.get();
+    mlir::ExecutionEngineOptions engine_options;
+    engine_options.transformer = opt_pipeline;
+    auto maybe_engine = mlir::ExecutionEngine::create(module, engine_options);
+    assert(maybe_engine && "failed to construct an execution engine");
+    auto& engine = maybe_engine.get();
 
     // Invoke the JIT-compiled function.
-    auto invocationResult = engine->invokePacked("main");
-    if (invocationResult) {
+    auto invocation_result = engine->invokePacked("main");
+    if (invocation_result) {
         llvm::errs() << "JIT invocation failed\n";
         return -1;
+    }
+
+    return 0;
+}
+
+int BuildExecutable(mlir::ModuleOp module, llvm::StringRef obj_path) {
+    mlir::registerBuiltinDialectTranslation(*module.getContext());
+    mlir::registerLLVMDialectTranslation(*module.getContext());
+
+    llvm::LLVMContext llvm_context;
+    auto llvm_module = mlir::translateModuleToLLVMIR(module, llvm_context);
+
+    if (!llvm_module) {
+        llvm::errs() << "Failed to emit LLVM IR\n";
+        return -1;
+    }
+
+    // Initialize LLVM targets
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    /// TODO:
+
+    llvm::StringRef triple_str = LLVMGetDefaultTargetTriple();
+    llvm_module->setTargetTriple(triple_str);
+
+    std::string err;
+    const llvm::Target* target =
+        llvm::TargetRegistry::lookupTarget(triple_str, err);
+
+    llvm::TargetOptions opts; // empty
+    std::unique_ptr<llvm::TargetMachine> tm(target->createTargetMachine(
+        triple_str, "generic", "", opts, std::nullopt));
+
+    llvm_module->setDataLayout(tm->createDataLayout());
+
+    std::error_code ec;
+
+    // an obj file
+    llvm::raw_fd_ostream dst("out.o", ec, llvm::sys::fs::OF_None);
+
+    if (ec) {
+        llvm::errs() << "Failed to open file for the obj: " + ec.message() +
+                            '\n';
+        return -2;
+    }
+
+    llvm::legacy::PassManager pass;
+    if (tm->addPassesToEmitFile(pass, dst, nullptr,
+                                llvm::CodeGenFileType::ObjectFile)) {
+        llvm::errs() << "Failed to generate obj file\n";
+        return -3;
+    }
+
+    pass.run(*llvm_module);
+
+    dst.flush();
+
+    /// TODO: replace clang++ with native linkers
+    // link
+    auto ret0 = std::system(
+        std::format("clang++ out.o -o {}",
+                    outputFilename == "-" ? "a.out" : outputFilename.c_str())
+            .c_str());
+
+    auto ret1 = std::system("rm out.o");
+
+    if (ret0) {
+        llvm::errs() << "Failed to link object file \n";
+        return -4;
+    }
+
+    if (ret1) {
+        llvm::errs() << "Failed to rm object file\n";
+        return -5;
     }
 
     return 0;
@@ -319,20 +439,22 @@ int main(int argc, char** argv) {
     if (int error = loadAndProcessMLIR(context, module))
         return error;
 
-    // If we aren't exporting to non-mlir, then we are done.
     bool isOutputingMLIR = emitAction <= Action::DumpMLIRLLVM;
     if (isOutputingMLIR) {
-        module->dump();
-        return 0;
+        return dumpMLIR(*module);
     }
 
-    // Check to see if we are compiling to LLVM IR.
-    if (emitAction == Action::DumpLLVMIR)
+    if (emitAction == Action::DumpLLVMIR) {
         return dumpLLVMIR(*module);
+    }
 
-    // Otherwise, we must be running the jit.
-    if (emitAction == Action::RunJIT)
+    if (emitAction == Action::RunJIT) {
         return runJit(*module);
+    }
+
+    if (emitAction == Action::BuildExe) {
+        return BuildExecutable(*module, outputFilename);
+    }
 
     llvm::errs() << "No action specified (parsing only?), use -emit=<action>\n";
     return -1;

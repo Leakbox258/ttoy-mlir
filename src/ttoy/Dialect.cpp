@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdio>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Casting.h>
@@ -318,6 +319,29 @@ void CallOp::setCalleeFromCallable(CallInterfaceCallable callee) {
 }
 
 Operation::operand_range CallOp::getArgOperands() { return getInputs(); }
+
+// ScanOp
+llvm::LogicalResult ScanOp::verify() {
+    auto input_type = llvm::dyn_cast<RankedTensorType>(
+        getOperand().getType()); // sym_name type
+
+    auto template_type = llvm::dyn_cast<RankedTensorType>(getTemplateType());
+
+    if (!input_type || !template_type) {
+        return mlir::success();
+    }
+
+    auto input_shape = input_type.getShape();
+
+    if (!std::equal(input_shape.begin(), input_shape.end(),
+                    template_type.getShape().begin())) {
+
+        return emitError()
+               << "expected input shape to be equal with template shape";
+    }
+
+    return mlir::success();
+}
 
 // ReturnOp
 llvm::LogicalResult ReturnOp::verify() {

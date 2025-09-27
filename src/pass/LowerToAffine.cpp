@@ -15,8 +15,10 @@
 #include "pass/Passes.hpp"
 #include "ttoy/Dialect.hpp"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/LogicalResult.h"
 
 /// Generics
+#include <cstdio>
 #include <mlir/IR/BuiltinAttributeInterfaces.h>
 #include <mlir/IR/BuiltinDialect.h>
 #include <mlir/IR/BuiltinOps.h>
@@ -253,7 +255,23 @@ struct PrintOpLowering : public OpConversionPattern<ttoy::PrintOp> {
         // operands.
         rewriter.modifyOpInPlace(
             op, [&] { op->setOperands(adaptor.getOperands()); });
-        return success();
+        return llvm::success();
+    }
+};
+
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: Scan operations
+//===----------------------------------------------------------------------===//
+
+struct ScanOpLowering : public OpConversionPattern<ttoy::ScanOp> {
+    using OpConversionPattern<ttoy::ScanOp>::OpConversionPattern;
+
+    LogicalResult
+    matchAndRewrite(ttoy::ScanOp op, OpAdaptor adaptor,
+                    ConversionPatternRewriter& rewriter) const final {
+        rewriter.modifyOpInPlace(
+            op, [&] { op->setOperands(adaptor.getOperands()); });
+        return llvm::success();
     }
 };
 
@@ -334,8 +352,13 @@ void TToyToAffineLoweringPass::runOnOperation() {
                            memref::MemRefDialect>();
     target.addIllegalDialect<ttoy::TToyDialect>();
 
-    // specifically handling PrintOp
+    // specifically handling PrintOp & ScanOp
     target.addDynamicallyLegalOp<ttoy::PrintOp>([](ttoy::PrintOp op) {
+        return llvm::none_of(op->getOperandTypes(), [](Type type) {
+            return llvm::isa<TensorType>(type);
+        });
+    });
+    target.addDynamicallyLegalOp<ttoy::ScanOp>([](ttoy::ScanOp op) {
         return llvm::none_of(op->getOperandTypes(), [](Type type) {
             return llvm::isa<TensorType>(type);
         });
@@ -345,7 +368,8 @@ void TToyToAffineLoweringPass::runOnOperation() {
     RewritePatternSet patterns(&getContext());
     patterns.add<AddOpLowering, SubOpLowering, ConstantOpLowering,
                  FuncOpLowering, MulOpLowering, DivOpLowering, PrintOpLowering,
-                 ReturnOpLowering, TransposeOpLowering>(&getContext());
+                 ScanOpLowering, ReturnOpLowering, TransposeOpLowering>(
+        &getContext());
 
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {

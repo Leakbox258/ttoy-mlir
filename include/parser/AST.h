@@ -19,9 +19,9 @@
 // #include "parser/Lexer.h"
 #include "Lexer.h"
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Casting.h"
+#include <llvm/ADT/ArrayRef.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/Support/Casting.h>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -45,6 +45,7 @@ class ExprAST {
         Expr_BinOp,
         Expr_Call,
         Expr_Print,
+        Expr_Scan,
     };
 
     ExprAST(ExprASTKind kind, Location location)
@@ -202,6 +203,23 @@ class PrintExprAST : public ExprAST {
 
     /// LLVM style RTTI
     static bool classof(const ExprAST* c) { return c->getKind() == Expr_Print; }
+};
+
+/// Expression class for builtin scan calls
+class ScanExprAST : public ExprAST {
+    std::unique_ptr<ExprAST> arg;
+    VarType type;
+
+  public:
+    ScanExprAST(Location loc, VarType type, std::unique_ptr<ExprAST> arg)
+        : ExprAST(Expr_Scan, std::move(loc)), arg(std::move(arg)),
+          type(std::move(type)) {}
+
+    ExprAST* getArg() { return arg.get(); }
+    const VarType& getType() const { return type; }
+
+    /// LLVM style RTTI
+    static bool classof(const ExprAST* c) { return c->getKind() == Expr_Scan; }
 };
 
 /// This class represents the "prototype" for a function, which captures its

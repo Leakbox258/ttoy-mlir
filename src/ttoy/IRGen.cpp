@@ -14,6 +14,7 @@
 #include "parser/AST.h"
 #include "parser/Lexer.h"
 #include "ttoy/Dialect.hpp"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <functional>
@@ -291,6 +292,20 @@ class MLIRGenImpl {
         return mlir::success();
     }
 
+    llvm::LogicalResult mlirGen(ScanExprAST& call) {
+        auto arg = mlirGen(*call.getArg());
+        if (!arg) {
+            err_detected = true;
+            return mlir::failure();
+        }
+
+        builder.create<mlir::ttoy::ScanOp>(
+            loc(call.loc()),
+            llvm::cast<mlir::TensorType>(getType(call.getType())), arg);
+
+        return mlir::success();
+    }
+
     mlir::Value mlirGen(NumberExprAST& num) {
         return builder.create<mlir::ttoy::ConstantOp>(loc(num.loc()),
                                                       num.getValue());
@@ -363,6 +378,11 @@ class MLIRGenImpl {
                 return mlirGen(*ret);
             if (auto* print = llvm::dyn_cast<PrintExprAST>(expr.get())) {
                 if (mlir::failed(mlirGen(*print)))
+                    return mlir::success();
+                continue;
+            }
+            if (auto* scan = llvm::dyn_cast<ScanExprAST>(expr.get())) {
+                if (mlir::failed(mlirGen(*scan)))
                     return mlir::success();
                 continue;
             }

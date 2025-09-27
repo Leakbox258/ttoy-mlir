@@ -224,6 +224,19 @@ def PrintOp : TToy_Op<"print"> {
     let assemblyFormat = "$input attr-dict `:` type($input)";
 }
 
+/// let a<...>;
+/// scan<...>(a);
+def ScanOp : TToy_Op<"scan"> {
+    let summary = "scan builtin operation";
+    let arguments = (ins
+        TypeAttrOf<F64Tensor> : $template_type,
+        AnyTypeOf<[F64Tensor, F64MemRef]> : $output
+    );
+
+    let assemblyFormat = "$output attr-dict `:` type($output)";
+    let hasVerifier = 1;
+}
+
 def ReshapeOp : TToy_Op<"reshape"> {
     let summary = "tensor-reshape builtin operation";
     let arguments = (ins 

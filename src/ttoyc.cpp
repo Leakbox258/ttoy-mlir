@@ -218,8 +218,10 @@ int loadAndProcessMLIR(mlir::MLIRContext& context,
         pm.addPass(mlir::LLVM::createDIScopeForLLVMFuncOpPass());
     }
 
-    if (mlir::failed(pm.run(*module)))
+    if (mlir::failed(pm.run(*module))) {
         return 4;
+    }
+
     return 0;
 }
 
@@ -357,7 +359,6 @@ int BuildExecutable(mlir::ModuleOp module) {
     // Initialize LLVM targets
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
-    /// TODO:
 
     llvm::StringRef triple_str = LLVMGetDefaultTargetTriple();
     llvm_module->setTargetTriple(triple_str);

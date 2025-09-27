@@ -18,11 +18,11 @@
 #include "AST.h"
 #include "Lexer.h"
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/raw_ostream.h"
+#include <llvm/ADT/STLExtras.h>
+#include <llvm/ADT/StringExtras.h>
+#include <llvm/Support/raw_ostream.h>
 
-#include <map>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -174,12 +174,20 @@ class Parser {
     std::unique_ptr<ExprAST> parseIdentifierExpr() {
         std::string name(lexer.getId());
 
+        /// TODO: type_arg maybe more usefully lately
+        std::unique_ptr<VarType> type_arg = nullptr;
+
         auto loc = lexer.getLastLocation();
         lexer.getNextToken(); // eat identifier.
 
-        if (lexer.getCurToken() != '(') // Simple variable ref.
-            return std::make_unique<VariableExprAST>(std::move(loc), name);
+        if (lexer.getCurToken() == '<') {
+            type_arg = parseType();
+        }
 
+        if (lexer.getCurToken() != '(') {
+            // Simple variable ref.
+            return std::make_unique<VariableExprAST>(std::move(loc), name);
+        }
         // This is a function call.
         lexer.consume(Token('('));
         std::vector<std::unique_ptr<ExprAST>> args;
@@ -200,14 +208,32 @@ class Parser {
         }
         lexer.consume(Token(')'));
 
-        // It can be a builtin call to print
+        // It can be a builtin call to print | scan
         if (name == "print") {
-            if (args.size() != 1)
+            /// TODO: maybe add an optional type arg for print
+            if (args.size() != 1) {
                 return parseError<ExprAST>("<single arg>",
                                            "as argument to print()");
+            } else if (type_arg) {
+                return parseError<ExprAST>("<>",
+                                           "print() doesnt need a type arg");
+            }
 
             return std::make_unique<PrintExprAST>(std::move(loc),
                                                   std::move(args[0]));
+        }
+
+        if (name == "scan") {
+            if (args.size() != 1) {
+                return parseError<ExprAST>("<single arg>",
+                                           "as argument to scan()");
+            } else if (!type_arg) {
+                return parseError<ExprAST>("<type arg>",
+                                           "as type argument to scan()");
+            }
+
+            return std::make_unique<ScanExprAST>(
+                std::move(loc), std::move(*type_arg), std::move(args[0]));
         }
 
         // Call to a user-defined function

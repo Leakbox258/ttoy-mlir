@@ -171,6 +171,7 @@ class Parser {
     /// identifierexpr
     ///   ::= identifier
     ///   ::= identifier '(' expression ')'
+    ///   ::= identifier '<' type arguments '>'
     std::unique_ptr<ExprAST> parseIdentifierExpr() {
         std::string name(lexer.getId());
 
@@ -343,16 +344,17 @@ class Parser {
     /// Parse a variable declaration, it starts with a `var` keyword followed by
     /// and identifier and an optional type (shape specification) before the
     /// initializer.
-    /// decl ::= var identifier [ type ] = expr
+    /// decl ::= let identifier [ type ] = expr
+    /// decl ::= let identifier type
     std::unique_ptr<VarDeclExprAST> parseDeclaration() {
         if (lexer.getCurToken() != tok_let)
-            return parseError<VarDeclExprAST>("var", "to begin declaration");
+            return parseError<VarDeclExprAST>("let", "to begin declaration");
         auto loc = lexer.getLastLocation();
         lexer.getNextToken(); // eat var
 
         if (lexer.getCurToken() != tok_identifier)
             return parseError<VarDeclExprAST>("identified",
-                                              "after 'var' declaration");
+                                              "after 'let' declaration");
         std::string id(lexer.getId());
         lexer.getNextToken(); // eat id
 
@@ -363,12 +365,29 @@ class Parser {
                 return nullptr;
         }
 
-        if (!type)
+        if (!type) {
             type = std::make_unique<VarType>();
-        lexer.consume(Token('='));
-        auto expr = parseExpression();
-        return std::make_unique<VarDeclExprAST>(
-            std::move(loc), std::move(id), std::move(*type), std::move(expr));
+        }
+
+        if (lexer.getCurToken() == Token('=')) {
+            lexer.consume(Token('='));
+            auto expr = parseExpression();
+            return std::make_unique<VarDeclExprAST>(
+                std::move(loc), std::move(id), std::move(*type),
+                std::move(expr));
+        } else if (lexer.getCurToken() == Token(';')) {
+            if (!type->isRanked()) {
+                return parseError<VarDeclExprAST>(
+                    "type arguments",
+                    "declare a variable with no explicit init expr");
+            }
+
+            return std::make_unique<VarDeclExprAST>(
+                std::move(loc), std::move(id), std::move(*type));
+        } else {
+            return parseError<VarDeclExprAST>("initilze expr or ';'",
+                                              "VarDeclExprAST parsing");
+        }
     }
 
     /// Parse a block: a list of expression separated by semicolons and wrapped

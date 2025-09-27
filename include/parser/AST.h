@@ -18,10 +18,15 @@
 
 // #include "parser/Lexer.h"
 #include "Lexer.h"
+#include "llvm/Support/raw_ostream.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Casting.h>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -31,6 +36,7 @@ namespace ttoy {
 /// A variable type with shape information.
 struct VarType {
     std::vector<int64_t> shape;
+    bool isRanked() const { return !shape.empty(); }
 };
 
 /// Base class for all expression nodes.
@@ -123,6 +129,38 @@ class VarDeclExprAST : public ExprAST {
                    std::unique_ptr<ExprAST> initVal)
         : ExprAST(Expr_VarDecl, std::move(loc)), name(name),
           type(std::move(type)), initVal(std::move(initVal)) {}
+
+    VarDeclExprAST(Location loc, llvm::StringRef name, VarType type)
+        : ExprAST(Expr_VarDecl, std::move(loc)), name(name),
+          type(std::move(type)) {
+
+        assert(this->type.isRanked() &&
+               "VarDeclExprAST: can't use default init without shape info");
+
+        // fill tensor with zeros
+        std::function<std::unique_ptr<ExprAST>(std::vector<int64_t>)>
+            GenDefaultExpr;
+        GenDefaultExpr = [&](std::vector<int64_t> tensor_subview)
+            -> std::unique_ptr<ExprAST> {
+            if (tensor_subview.empty()) {
+                return std::make_unique<NumberExprAST>(this->loc(), 0.0);
+            }
+
+            std::vector<std::unique_ptr<ExprAST>> values;
+
+            std::vector<int64_t> sub_dims(tensor_subview.begin() + 1,
+                                          tensor_subview.end());
+
+            for (auto i = 0; i != tensor_subview.front(); ++i) {
+                values.push_back(GenDefaultExpr(sub_dims));
+            }
+
+            return std::make_unique<LiteralExprAST>(
+                this->loc(), std::move(values), std::move(tensor_subview));
+        };
+
+        initVal = GenDefaultExpr(this->type.shape);
+    }
 
     llvm::StringRef getName() { return name; }
     ExprAST* getInitVal() { return initVal.get(); }

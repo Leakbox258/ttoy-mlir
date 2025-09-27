@@ -13,11 +13,11 @@
 
 #include "parser/AST.h"
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/ADT/TypeSwitch.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/raw_ostream.h"
+#include <llvm/ADT/STLExtras.h>
+#include <llvm/ADT/Twine.h>
+#include <llvm/ADT/TypeSwitch.h>
+#include <llvm/Support/Casting.h>
+#include <llvm/Support/raw_ostream.h>
 #include <string>
 
 using namespace ttoy;
@@ -97,7 +97,10 @@ void ASTDumper::dump(VarDeclExprAST* varDecl) {
     llvm::errs() << "VarDecl " << varDecl->getName();
     dump(varDecl->getType());
     llvm::errs() << " " << loc(varDecl) << "\n";
-    dump(varDecl->getInitVal());
+
+    if (varDecl->getInitVal()) {
+        dump(varDecl->getInitVal());
+    }
 }
 
 /// A "block", or a list of expression

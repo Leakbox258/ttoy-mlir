@@ -12,8 +12,7 @@
 #ifndef TTOY_IRGEN_H
 #define TTOY_IRGEN_H
 
-#include "mlir/IR/MLIRContext.h"
-#include <memory>
+#include <mlir/IR/MLIRContext.h>
 
 namespace mlir {
 

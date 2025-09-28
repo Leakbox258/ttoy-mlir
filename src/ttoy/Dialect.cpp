@@ -11,6 +11,7 @@
 
 #include "ttoy/Dialect.hpp"
 #include "generated/Dialect.cpp.inc"
+#include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/Region.h"
 #include "mlir/IR/ValueRange.h"
 #include "llvm/ADT/STLExtras.h"
@@ -18,7 +19,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdio>
+#include <cstdint>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Casting.h>
@@ -430,6 +431,113 @@ bool CastOp::areCastCompatible(TypeRange inputs, TypeRange outputs) {
         return false;
 
     return !input.hasRank() || !output.hasRank() || input == output;
+}
+
+// dotop
+void DotOp::build(mlir::OpBuilder& builder, mlir::OperationState& state,
+                  mlir::Value lhs, mlir::Value rhs) {
+
+    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+    state.addOperands(lhs);
+    state.addOperands(rhs);
+}
+
+void DotOp::inferShapes() {
+    getResult().setType(
+        RankedTensorType::get({1}, getLhs().getType().getElementType()));
+}
+
+llvm::LogicalResult DotOp::verify() {
+    const auto lhs_shape = getLhs().getType().getShape();
+    const auto rhs_shape = getRhs().getType().getShape();
+
+    // no broadcasting
+    if (lhs_shape != rhs_shape) {
+        return mlir::failure();
+    }
+
+    // all 1D
+    if (lhs_shape.size() != 1 || rhs_shape.size() != 1) {
+        return mlir::failure();
+    }
+
+    return mlir::success();
+}
+
+// mmop
+void MMOp::build(mlir::OpBuilder& builder, mlir::OperationState& state,
+                 mlir::Value lhs, mlir::Value rhs) {
+
+    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+    state.addOperands(lhs);
+    state.addOperands(rhs);
+}
+
+void MMOp::inferShapes() {
+    const auto lhs_shape = getLhs().getType().getShape();
+    const auto rhs_shape = getRhs().getType().getShape();
+
+    llvm::SmallVector<int64_t, 2> dims{lhs_shape[0], rhs_shape[1]};
+
+    getResult().setType(
+        RankedTensorType::get(dims, getLhs().getType().getElementType()));
+}
+
+llvm::LogicalResult MMOp::verify() {
+    const auto lhs_shape = getLhs().getType().getShape();
+    const auto rhs_shape = getRhs().getType().getShape();
+
+    // all 2D
+    if (lhs_shape.size() != 2 || rhs_shape.size() != 2) {
+        return mlir::failure();
+    }
+
+    if (lhs_shape[1] != rhs_shape[0]) {
+        return mlir::failure();
+    }
+
+    return mlir::success();
+}
+
+// bmmop
+void BMMOp::build(mlir::OpBuilder& builder, mlir::OperationState& state,
+                  mlir::Value lhs, mlir::Value rhs) {
+
+    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+    state.addOperands(lhs);
+    state.addOperands(rhs);
+}
+
+void BMMOp::inferShapes() {
+    const auto lhs_shape = getLhs().getType().getShape();
+    const auto rhs_shape = getRhs().getType().getShape();
+
+    llvm::SmallVector<int64_t, 2> dims{lhs_shape[0], lhs_shape[1],
+                                       rhs_shape[2]};
+
+    getResult().setType(
+        RankedTensorType::get(dims, getLhs().getType().getElementType()));
+}
+
+llvm::LogicalResult BMMOp::verify() {
+    const auto lhs_shape = getLhs().getType().getShape();
+    const auto rhs_shape = getRhs().getType().getShape();
+
+    // all 3D
+    if (lhs_shape.size() != 3 || rhs_shape.size() != 3) {
+        return mlir::failure();
+    }
+
+    // batch size
+    if (lhs_shape[0] != rhs_shape[0]) {
+        return mlir::failure();
+    }
+
+    if (lhs_shape[2] != rhs_shape[1]) {
+        return mlir::failure();
+    }
+
+    return mlir::success();
 }
 
 #define GET_OP_CLASSES

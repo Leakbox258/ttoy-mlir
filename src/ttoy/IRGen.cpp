@@ -276,6 +276,24 @@ class MLIRGenImpl {
             }
             return builder.create<mlir::ttoy::TransposeOp>(location,
                                                            operands[0]);
+        } else if (callee == "dot" || callee == "mm" || callee == "bmm") {
+            if (call_ast.getArgs().size() != 2) {
+                emitError(location,
+                          "MLIR codegen encountered an error: "
+                          "ttoy.tensor_multiplications "
+                          "does not accept arguments number expect for 2 ");
+                return nullptr;
+            }
+
+            if (callee == "dot")
+                return builder.create<mlir::ttoy::DotOp>(location, operands[0],
+                                                         operands[1]);
+            if (callee == "mm")
+                return builder.create<mlir::ttoy::MMOp>(location, operands[0],
+                                                        operands[1]);
+            if (callee == "bmm")
+                return builder.create<mlir::ttoy::BMMOp>(location, operands[0],
+                                                         operands[1]);
         }
 
         return builder.create<mlir::ttoy::CallOp>(location, callee, operands);

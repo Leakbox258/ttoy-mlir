@@ -1,6 +1,0 @@
-fn main() {
-    let e<2,2>;
-    scan<2,2>(e);
-    print(e);
-    return;
-}

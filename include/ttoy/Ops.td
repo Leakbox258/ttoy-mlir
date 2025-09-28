@@ -290,4 +290,82 @@ def CastOp : TToy_Op<"cast", [
     let assemblyFormat = "$input attr-dict `:` type($input) `to` type($output)";
 }
 
+def DotOp : TToy_Op<"dot", [
+    Pure,
+    DeclareOpInterfaceMethods<ShapeInferenceOpInterface>
+]> {
+    let summary = "1D tensor dot";
+
+    let arguments = (ins
+        F64Tensor : $lhs,
+        F64Tensor : $rhs
+    );
+    let results = (outs
+        F64Tensor : $output
+    );
+    let builders = [
+    OpBuilder<(ins
+        "Value" : $lhs,
+        "Value" : $rhs
+    )>];
+
+    let assemblyFormat = [{
+        `(` $lhs `,` $rhs `)` attr-dict `:` `(` type($lhs) `,` type($rhs) `)` `:` type(results)        
+    }];
+
+    let hasVerifier = 1;
+}
+
+def MMOp : TToy_Op<"mm", [
+    Pure,
+    DeclareOpInterfaceMethods<ShapeInferenceOpInterface>
+]> {
+    let summary = "matrix multiplication";
+
+    let arguments = (ins
+        F64Tensor : $lhs,
+        F64Tensor : $rhs
+    );
+    let results = (outs
+        F64Tensor : $output
+    );
+    let builders = [
+        OpBuilder<(ins
+            "Value" : $lhs,
+            "Value" : $rhs
+        )>];
+
+    let assemblyFormat = [{
+        `(` $lhs `,` $rhs `)` attr-dict `:` `(` type($lhs) `,` type($rhs) `)` `:` type(results)        
+    }];
+
+    let hasVerifier = 1;
+}
+
+def BMMOp : TToy_Op<"bmm", [
+    Pure,
+    DeclareOpInterfaceMethods<ShapeInferenceOpInterface>
+]> {
+    let summary = "batched matrix multiplication";
+    
+    let arguments = (ins
+        F64Tensor : $lhs,
+        F64Tensor : $rhs
+    );
+    let results = (outs
+        F64Tensor : $output
+    );
+    let builders = [
+        OpBuilder<(ins
+            "Value" : $lhs,
+            "Value" : $rhs
+        )>];
+
+    let assemblyFormat = [{
+        `(` $lhs `,` $rhs `)` attr-dict `:` `(` type($lhs) `,` type($rhs) `)` `:` type(results)        
+    }];
+
+    let hasVerifier = 1;
+}
+
 #endif // 

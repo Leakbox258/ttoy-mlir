@@ -1,0 +1,7 @@
+fn main() {
+    let a<2> = [1, 2];
+    let b<2> = [2, 4];
+    let c = dot(a, b);
+
+    return c;
+}

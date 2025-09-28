@@ -1,0 +1,9 @@
+fn main() {
+    let a = 1;
+    let b = [1, 2];
+
+    let e<2,2>;
+    scan<2,2>(e); // scanf("%lf ", e[i][j]);
+    print(e); // printf("%lf ", e[i][j]);
+    return;
+}

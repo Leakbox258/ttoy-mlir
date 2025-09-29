@@ -4,10 +4,10 @@ set(LLVM_TARGET_DEFINITIONS
 
 mlir_tablegen(PatternMatch.inc -gen-rewriters)
 
-add_public_tablegen_target(TToy_PatternMatch)
+add_public_tablegen_target(Etoy_PatternMatch)
 
 add_custom_command(
-  TARGET TToy_PatternMatch POST_BUILD
+  TARGET Etoy_PatternMatch POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_BINARY_DIR}/*.inc
           ${TABLEGEN_OUTPUT_DIR}/.
@@ -22,10 +22,10 @@ set(LLVM_TARGET_DEFINITIONS
 
 mlir_tablegen(ShapeInferenceOpInterface.h.inc -gen-op-interface-decls)
 mlir_tablegen(ShapeInferenceOpInterface.cpp.inc -gen-op-interface-defs)
-add_public_tablegen_target(TToy_ShapeInferenceOpInterface)
+add_public_tablegen_target(Etoy_ShapeInferenceOpInterface)
 
 add_custom_command(
-  TARGET TToy_ShapeInferenceOpInterface POST_BUILD
+  TARGET Etoy_ShapeInferenceOpInterface POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
           ${CMAKE_CURRENT_BINARY_DIR}/*.inc
           ${TABLEGEN_OUTPUT_DIR}/.

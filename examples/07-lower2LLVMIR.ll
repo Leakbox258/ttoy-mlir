@@ -270,7 +270,7 @@ define void @main() !dbg !8 {
 !6 = !DISubprogram(name: "printf", linkageName: "printf", scope: !2, file: !2, line: 1, type: !4, scopeLine: 1, spFlags: DISPFlagOptimized)
 !7 = !DISubprogram(name: "malloc", linkageName: "malloc", scope: !2, file: !2, line: 1, type: !4, scopeLine: 1, spFlags: DISPFlagOptimized)
 !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !9, file: !9, line: 5, type: !4, scopeLine: 1, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !1)
-!9 = !DIFile(filename: "07-lower2LLVMIR.ttoy", directory: "../examples")
+!9 = !DIFile(filename: "07-lower2LLVMIR.etoy", directory: "../examples")
 !10 = !DILocation(line: 11, column: 13, scope: !8)
 !11 = !DILocation(line: 8, column: 13, scope: !8)
 !12 = !DILocation(line: 6, column: 13, scope: !8)

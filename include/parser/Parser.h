@@ -1,4 +1,4 @@
-//===- Parser.h - TToy Language Parser
+//===- Parser.h - Etoy Language Parser
 //-------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -7,13 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the parser for the TToy language. It processes the Token
+// This file implements the parser for the Etoy language. It processes the Token
 // provided by the Lexer and returns an AST.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_PARSER_H
-#define TTOY_PARSER_H
+#ifndef ETOY_PARSER_H
+#define ETOY_PARSER_H
 
 #include "AST.h"
 #include "Lexer.h"
@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-namespace ttoy {
+namespace etoy {
 
 class Parser {
   public:
@@ -540,6 +540,6 @@ class Parser {
     }
 };
 
-} // namespace ttoy
+} // namespace etoy
 
 #endif // TOY_PARSER_H

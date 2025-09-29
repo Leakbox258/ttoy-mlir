@@ -1,7 +1,7 @@
 //====- LowerToLLVM.cpp - Lowering from Toy+Affine+Std to LLVM ------------===//
 //
 // This file implements full lowering of Toy operations to LLVM MLIR dialect.
-// 'ttoy.print' is lowered to a loop nest that calls `printf` on each element of
+// 'etoy.print' is lowered to a loop nest that calls `printf` on each element of
 // the input array. The file also sets up the ToyToLLVMLoweringPass. This pass
 // lowers the combination of Arithmetic + Affine + SCF + Func dialects to the
 // LLVM one:
@@ -16,12 +16,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "etoy/Dialect.hpp"
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Value.h"
 #include "pass/Passes.hpp"
-#include "ttoy/Dialect.hpp"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
@@ -63,11 +63,11 @@
 using namespace mlir;
 
 namespace {
-// ttoy.print -> printf with scf
+// etoy.print -> printf with scf
 class PrintOpLowering : public ConversionPattern {
   public:
     explicit PrintOpLowering(MLIRContext* context)
-        : ConversionPattern(ttoy::PrintOp::getOperationName(), 1, context) {}
+        : ConversionPattern(etoy::PrintOp::getOperationName(), 1, context) {}
 
     LogicalResult
     matchAndRewrite(Operation* op, ArrayRef<Value> operands,
@@ -118,7 +118,7 @@ class PrintOpLowering : public ConversionPattern {
         }
 
         // Generate a call to printf for the current element of the loop.
-        auto print_op = cast<ttoy::PrintOp>(op);
+        auto print_op = cast<etoy::PrintOp>(op);
         auto element_load =
             rewriter.create<memref::LoadOp>(loc, print_op.getInput(), loopIvs);
 
@@ -189,11 +189,11 @@ class PrintOpLowering : public ConversionPattern {
     }
 };
 
-// ttoy.scan -> scanf with scf
+// etoy.scan -> scanf with scf
 class ScanOpLowering : public ConversionPattern {
   public:
     explicit ScanOpLowering(MLIRContext* context)
-        : ConversionPattern(ttoy::ScanOp::getOperationName(), 1, context) {}
+        : ConversionPattern(etoy::ScanOp::getOperationName(), 1, context) {}
 
     LogicalResult
     matchAndRewrite(Operation* op, ArrayRef<Value> operands,
@@ -331,11 +331,11 @@ class ScanOpLowering : public ConversionPattern {
 
 } // namespace
 
-// TToyLLVMLoweringPass
+// EtoyLLVMLoweringPass
 namespace {
-struct TToyToLLVMLoweringPass
-    : public PassWrapper<TToyToLLVMLoweringPass, OperationPass<ModuleOp>> {
-    MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TToyToLLVMLoweringPass)
+struct EtoyToLLVMLoweringPass
+    : public PassWrapper<EtoyToLLVMLoweringPass, OperationPass<ModuleOp>> {
+    MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(EtoyToLLVMLoweringPass)
 
     void getDependentDialects(DialectRegistry& registry) const override {
         registry.insert<LLVM::LLVMDialect, scf::SCFDialect>();
@@ -344,7 +344,7 @@ struct TToyToLLVMLoweringPass
 };
 } // namespace
 
-void TToyToLLVMLoweringPass::runOnOperation() {
+void EtoyToLLVMLoweringPass::runOnOperation() {
     LLVMConversionTarget target(getContext());
     target.addLegalOp<ModuleOp>();
 
@@ -376,6 +376,6 @@ void TToyToLLVMLoweringPass::runOnOperation() {
     }
 }
 
-std::unique_ptr<mlir::Pass> mlir::ttoy::createLowerToLLVMPass() {
-    return std::make_unique<TToyToLLVMLoweringPass>();
+std::unique_ptr<mlir::Pass> mlir::etoy::createLowerToLLVMPass() {
+    return std::make_unique<EtoyToLLVMLoweringPass>();
 }

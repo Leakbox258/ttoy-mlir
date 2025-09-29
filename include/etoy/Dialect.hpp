@@ -1,15 +1,15 @@
-//===- Dialect.td - TToy dialect declarations ----------*- tablegen -*-===//
+//===- Dialect.td - Etoy dialect declarations ----------*- tablegen -*-===//
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 //
-// Declarations the TToy dialect.
+// Declarations the Etoy dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_DIALECT_HPP
-#define TTOY_DIALECT_HPP
+#ifndef ETOY_DIALECT_HPP
+#define ETOY_DIALECT_HPP
 
 #include <mlir/Bytecode/BytecodeOpInterface.h>
 #include <mlir/IR/BuiltinTypes.h>

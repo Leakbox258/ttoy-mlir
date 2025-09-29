@@ -1,9 +1,9 @@
-//====- LowerToAffine.cpp - Partial lowering from TToy to Affine+Std --===//
+//====- LowerToAffine.cpp - Partial lowering from Etoy to Affine+Std --===//
 //
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements a partial lowering of TToy operations to a combination
+// This file implements a partial lowering of Etoy operations to a combination
 // of affine loops, memref operations and standard operations. This lowering
 // expects that all calls have been inlined, and all shapes have been resolved.
 //
@@ -12,6 +12,7 @@
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "llvm/ADT/StringRef.h"
 #include <cassert>
+#include <etoy/Dialect.hpp>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/LogicalResult.h>
 #include <mlir/IR/Builders.h>
@@ -21,7 +22,6 @@
 #include <mlir/IR/Value.h>
 #include <numeric>
 #include <pass/Passes.hpp>
-#include <ttoy/Dialect.hpp>
 
 /// Generics
 #include <mlir/IR/BuiltinAttributeInterfaces.h>
@@ -170,19 +170,19 @@ struct BinaryOpLowering : public ConversionPattern {
         return success();
     }
 };
-using AddOpLowering = BinaryOpLowering<ttoy::AddOp, arith::AddFOp>;
-using MulOpLowering = BinaryOpLowering<ttoy::MulOp, arith::MulFOp>;
-using SubOpLowering = BinaryOpLowering<ttoy::SubOp, arith::SubFOp>;
-using DivOpLowering = BinaryOpLowering<ttoy::DivOp, arith::DivFOp>;
+using AddOpLowering = BinaryOpLowering<etoy::AddOp, arith::AddFOp>;
+using MulOpLowering = BinaryOpLowering<etoy::MulOp, arith::MulFOp>;
+using SubOpLowering = BinaryOpLowering<etoy::SubOp, arith::SubFOp>;
+using DivOpLowering = BinaryOpLowering<etoy::DivOp, arith::DivFOp>;
 
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: Constant operations
 //===----------------------------------------------------------------------===//
 
-struct ConstantOpLowering : public OpRewritePattern<ttoy::ConstantOp> {
-    using OpRewritePattern<ttoy::ConstantOp>::OpRewritePattern;
+struct ConstantOpLowering : public OpRewritePattern<etoy::ConstantOp> {
+    using OpRewritePattern<etoy::ConstantOp>::OpRewritePattern;
 
-    LogicalResult matchAndRewrite(ttoy::ConstantOp op,
+    LogicalResult matchAndRewrite(etoy::ConstantOp op,
                                   PatternRewriter& rewriter) const final {
         DenseElementsAttr constantValue = op.getValue();
         Location loc = op.getLoc();
@@ -247,11 +247,11 @@ struct ConstantOpLowering : public OpRewritePattern<ttoy::ConstantOp> {
 // ToyToAffine RewritePatterns: Func operations
 //===----------------------------------------------------------------------===//
 
-struct FuncOpLowering : public OpConversionPattern<ttoy::FuncOp> {
-    using OpConversionPattern<ttoy::FuncOp>::OpConversionPattern;
+struct FuncOpLowering : public OpConversionPattern<etoy::FuncOp> {
+    using OpConversionPattern<etoy::FuncOp>::OpConversionPattern;
 
     LogicalResult
-    matchAndRewrite(ttoy::FuncOp op, OpAdaptor adaptor,
+    matchAndRewrite(etoy::FuncOp op, OpAdaptor adaptor,
                     ConversionPatternRewriter& rewriter) const final {
         // We only lower the main function as we expect that all other functions
         // have been inlined.
@@ -278,11 +278,11 @@ struct FuncOpLowering : public OpConversionPattern<ttoy::FuncOp> {
 // ToyToAffine RewritePatterns: Print operations
 //===----------------------------------------------------------------------===//
 
-struct PrintOpLowering : public OpConversionPattern<ttoy::PrintOp> {
-    using OpConversionPattern<ttoy::PrintOp>::OpConversionPattern;
+struct PrintOpLowering : public OpConversionPattern<etoy::PrintOp> {
+    using OpConversionPattern<etoy::PrintOp>::OpConversionPattern;
 
     LogicalResult
-    matchAndRewrite(ttoy::PrintOp op, OpAdaptor adaptor,
+    matchAndRewrite(etoy::PrintOp op, OpAdaptor adaptor,
                     ConversionPatternRewriter& rewriter) const final {
         // We don't lower "toy.print" in this pass, but we need to update its
         // operands.
@@ -296,11 +296,11 @@ struct PrintOpLowering : public OpConversionPattern<ttoy::PrintOp> {
 // ToyToAffine RewritePatterns: Scan operations
 //===----------------------------------------------------------------------===//
 
-struct ScanOpLowering : public OpConversionPattern<ttoy::ScanOp> {
-    using OpConversionPattern<ttoy::ScanOp>::OpConversionPattern;
+struct ScanOpLowering : public OpConversionPattern<etoy::ScanOp> {
+    using OpConversionPattern<etoy::ScanOp>::OpConversionPattern;
 
     LogicalResult
-    matchAndRewrite(ttoy::ScanOp op, OpAdaptor adaptor,
+    matchAndRewrite(etoy::ScanOp op, OpAdaptor adaptor,
                     ConversionPatternRewriter& rewriter) const final {
         rewriter.modifyOpInPlace(
             op, [&] { op->setOperands(adaptor.getOperands()); });
@@ -312,10 +312,10 @@ struct ScanOpLowering : public OpConversionPattern<ttoy::ScanOp> {
 // ToyToAffine RewritePatterns: Return operations
 //===----------------------------------------------------------------------===//
 
-struct ReturnOpLowering : public OpRewritePattern<ttoy::ReturnOp> {
-    using OpRewritePattern<ttoy::ReturnOp>::OpRewritePattern;
+struct ReturnOpLowering : public OpRewritePattern<etoy::ReturnOp> {
+    using OpRewritePattern<etoy::ReturnOp>::OpRewritePattern;
 
-    LogicalResult matchAndRewrite(ttoy::ReturnOp op,
+    LogicalResult matchAndRewrite(etoy::ReturnOp op,
                                   PatternRewriter& rewriter) const final {
         // During this lowering, we expect that all function calls have been
         // inlined.
@@ -334,7 +334,7 @@ struct ReturnOpLowering : public OpRewritePattern<ttoy::ReturnOp> {
 
 struct TransposeOpLowering : public ConversionPattern {
     TransposeOpLowering(MLIRContext* ctx)
-        : ConversionPattern(ttoy::TransposeOp::getOperationName(), 1, ctx) {}
+        : ConversionPattern(etoy::TransposeOp::getOperationName(), 1, ctx) {}
 
     LogicalResult
     matchAndRewrite(Operation* op, ArrayRef<Value> operands,
@@ -347,7 +347,7 @@ struct TransposeOpLowering : public ConversionPattern {
                 // Generate an adaptor for the remapped operands of the
                 // TransposeOp. This allows for using the nice named
                 // accessors that are generated by the ODS.
-                ttoy::TransposeOpAdaptor transposeAdaptor(memRefOperands);
+                etoy::TransposeOpAdaptor transposeAdaptor(memRefOperands);
                 Value input = transposeAdaptor.getInput();
 
                 // Transpose the elements by generating a load from the
@@ -365,7 +365,7 @@ struct TransposeOpLowering : public ConversionPattern {
 //===----------------------------------------------------------------------===//
 struct DotOpLowering : public ConversionPattern {
     DotOpLowering(MLIRContext* ctx)
-        : ConversionPattern(ttoy::DotOp::getOperationName(), 1, ctx) {}
+        : ConversionPattern(etoy::DotOp::getOperationName(), 1, ctx) {}
 
     LogicalResult
     matchAndRewrite(Operation* op, ArrayRef<Value> operands,
@@ -382,7 +382,7 @@ struct DotOpLowering : public ConversionPattern {
         llvm::SmallVector<int64_t, 2> lower_bounds(tensor_type.getRank()); // 1
         llvm::SmallVector<int64_t, 2> steps(tensor_type.getRank(), 1);
 
-        ttoy::MMOpAdaptor adaptor(operands);
+        etoy::MMOpAdaptor adaptor(operands);
 
         /// lhs will lowering before dot, so here is MemRefType, I guess...
         const auto lhs_shape =
@@ -395,7 +395,7 @@ struct DotOpLowering : public ConversionPattern {
         affine::buildAffineLoopNest(
             rewriter, loc, lower_bounds, upper_bounds, steps,
             [&](OpBuilder& nested_builder, Location loc, ValueRange ivs) {
-                ttoy::DotOp::Adaptor adaptor(operands);
+                etoy::DotOp::Adaptor adaptor(operands);
 
                 // lhs through idx
                 auto load_lhs = nested_builder.create<affine::AffineLoadOp>(
@@ -429,7 +429,7 @@ struct DotOpLowering : public ConversionPattern {
 //===----------------------------------------------------------------------===//
 struct MMOpLowering : public ConversionPattern {
     MMOpLowering(MLIRContext* ctx)
-        : ConversionPattern(ttoy::MMOp::getOperationName(), 1, ctx) {}
+        : ConversionPattern(etoy::MMOp::getOperationName(), 1, ctx) {}
 
     LogicalResult
     matchAndRewrite(Operation* op, ArrayRef<Value> operands,
@@ -446,7 +446,7 @@ struct MMOpLowering : public ConversionPattern {
         llvm::SmallVector<int64_t, 4> lower_bounds(tensor_type.getRank() + 1);
         llvm::SmallVector<int64_t, 4> steps(tensor_type.getRank() + 1, 1);
 
-        ttoy::MMOpAdaptor adaptor(operands);
+        etoy::MMOpAdaptor adaptor(operands);
 
         const auto lhs_shape =
             llvm::dyn_cast<MemRefType>(adaptor.getLhs().getType()).getShape();
@@ -493,7 +493,7 @@ struct MMOpLowering : public ConversionPattern {
 
 struct BMMOpLowering : public ConversionPattern {
     BMMOpLowering(MLIRContext* ctx)
-        : ConversionPattern(ttoy::BMMOp::getOperationName(), 1, ctx) {}
+        : ConversionPattern(etoy::BMMOp::getOperationName(), 1, ctx) {}
 
     LogicalResult
     matchAndRewrite(Operation* op, ArrayRef<Value> operands,
@@ -510,7 +510,7 @@ struct BMMOpLowering : public ConversionPattern {
         llvm::SmallVector<int64_t, 4> lower_bounds(tensor_type.getRank() + 1);
         llvm::SmallVector<int64_t, 4> steps(tensor_type.getRank() + 1, 1);
 
-        ttoy::BMMOpAdaptor adaptor(operands);
+        etoy::BMMOpAdaptor adaptor(operands);
 
         const auto lhs_shape =
             llvm::dyn_cast<MemRefType>(adaptor.getLhs().getType()).getShape();
@@ -559,10 +559,10 @@ struct BMMOpLowering : public ConversionPattern {
 
 // lowering pass
 namespace {
-struct TToyToAffineLoweringPass
-    : public PassWrapper<TToyToAffineLoweringPass, OperationPass<ModuleOp>> {
+struct EtoyToAffineLoweringPass
+    : public PassWrapper<EtoyToAffineLoweringPass, OperationPass<ModuleOp>> {
 
-    MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(TToyToAffineLoweringPass)
+    MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(EtoyToAffineLoweringPass)
 
     void getDependentDialects(DialectRegistry& registry) const override {
         registry.insert<affine::AffineDialect, func::FuncDialect,
@@ -572,27 +572,27 @@ struct TToyToAffineLoweringPass
 };
 } // namespace
 
-void TToyToAffineLoweringPass::runOnOperation() {
+void EtoyToAffineLoweringPass::runOnOperation() {
     ConversionTarget target(getContext());
 
     target.addLegalDialect<affine::AffineDialect, BuiltinDialect,
                            arith::ArithDialect, func::FuncDialect,
                            LLVM::LLVMDialect, memref::MemRefDialect>();
-    target.addIllegalDialect<ttoy::TToyDialect>();
+    target.addIllegalDialect<etoy::EtoyDialect>();
 
     // specifically handling PrintOp & ScanOp
-    target.addDynamicallyLegalOp<ttoy::PrintOp>([](ttoy::PrintOp op) {
+    target.addDynamicallyLegalOp<etoy::PrintOp>([](etoy::PrintOp op) {
         return llvm::none_of(op->getOperandTypes(), [](Type type) {
             return llvm::isa<TensorType>(type);
         });
     });
-    target.addDynamicallyLegalOp<ttoy::ScanOp>([](ttoy::ScanOp op) {
+    target.addDynamicallyLegalOp<etoy::ScanOp>([](etoy::ScanOp op) {
         return llvm::none_of(op->getOperandTypes(), [](Type type) {
             return llvm::isa<TensorType>(type);
         });
     });
 
-    // the set of patterns that will lower the TToy operations
+    // the set of patterns that will lower the Etoy operations
     RewritePatternSet patterns(&getContext());
     patterns.add<AddOpLowering, SubOpLowering, ConstantOpLowering,
                  FuncOpLowering, MulOpLowering, DivOpLowering, DotOpLowering,
@@ -606,6 +606,6 @@ void TToyToAffineLoweringPass::runOnOperation() {
 }
 
 // interface
-std::unique_ptr<Pass> mlir::ttoy::createLowerToAffinePass() {
-    return std::make_unique<TToyToAffineLoweringPass>();
+std::unique_ptr<Pass> mlir::etoy::createLowerToAffinePass() {
+    return std::make_unique<EtoyToAffineLoweringPass>();
 }

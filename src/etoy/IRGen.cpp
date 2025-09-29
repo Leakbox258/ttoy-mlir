@@ -1,19 +1,19 @@
-//===- IRGen.td - TToy dialect MLIRGen definitions ----------*- tablegen
+//===- IRGen.td - Etoy dialect MLIRGen definitions ----------*- tablegen
 //-*-===//
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 //
-// Generate TToy-dialect from AST
+// Generate Etoy-dialect from AST
 //
 //===----------------------------------------------------------------------===//
 
-#include "ttoy/IRGen.hpp"
+#include "etoy/IRGen.hpp"
+#include "etoy/Dialect.hpp"
 #include "mlir/IR/OwningOpRef.h"
 #include "parser/AST.h"
 #include "parser/Lexer.h"
-#include "ttoy/Dialect.hpp"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -41,12 +41,12 @@
 #include <numeric>
 #include <vector>
 
-using namespace ttoy;
+using namespace etoy;
 
 namespace {
 class MLIRGenImpl {
   private:
-    mlir::ModuleOp ttoy_module;
+    mlir::ModuleOp etoy_module;
     mlir::OpBuilder builder;
     llvm::ScopedHashTable<llvm::StringRef, mlir::Value> symbol_table;
     bool err_detected = false;
@@ -79,7 +79,7 @@ class MLIRGenImpl {
     }
 
     /// overloads of mlirGen
-    mlir::ttoy::FuncOp mlirGen(PrototypeAST& proto) {
+    mlir::etoy::FuncOp mlirGen(PrototypeAST& proto) {
         auto location = loc(proto.loc());
 
         llvm::SmallVector<mlir::Type, 4> argTypes(proto.getArgs().size(),
@@ -87,18 +87,18 @@ class MLIRGenImpl {
 
         auto funcType = builder.getFunctionType(argTypes, std::nullopt);
 
-        return builder.create<mlir::ttoy::FuncOp>(location, proto.getName(),
+        return builder.create<mlir::etoy::FuncOp>(location, proto.getName(),
                                                   funcType);
     }
 
-    mlir::ttoy::FuncOp mlirGen(FunctionAST& func_ast) {
+    mlir::etoy::FuncOp mlirGen(FunctionAST& func_ast) {
         // set inline private (set entry)
 
         llvm::ScopedHashTableScope<llvm::StringRef, mlir::Value> var_scope(
             symbol_table);
 
-        builder.setInsertionPointToEnd(ttoy_module.getBody());
-        mlir::ttoy::FuncOp function = mlirGen(*func_ast.getProto());
+        builder.setInsertionPointToEnd(etoy_module.getBody());
+        mlir::etoy::FuncOp function = mlirGen(*func_ast.getProto());
 
         if (!function) {
             return nullptr;
@@ -133,12 +133,12 @@ class MLIRGenImpl {
         // 4. trait the last operation as return or simply add a return
         // FIXME: this will be tricky when include control flow or REPL into
         // this language
-        mlir::ttoy::ReturnOp returnOp;
+        mlir::etoy::ReturnOp returnOp;
         if (!entry_block.empty()) {
-            returnOp = dyn_cast<mlir::ttoy::ReturnOp>(entry_block.back());
+            returnOp = dyn_cast<mlir::etoy::ReturnOp>(entry_block.back());
         }
         if (!returnOp) {
-            builder.create<mlir::ttoy::ReturnOp>(
+            builder.create<mlir::etoy::ReturnOp>(
                 loc(func_ast.getProto()->loc()));
         } else if (returnOp.hasOperand()) {
             function.setType(builder.getFunctionType(
@@ -167,13 +167,13 @@ class MLIRGenImpl {
 
         switch (binary_ast.getOp()) {
         case '+':
-            return builder.create<mlir::ttoy::AddOp>(location, lhs, rhs);
+            return builder.create<mlir::etoy::AddOp>(location, lhs, rhs);
         case '-':
-            return builder.create<mlir::ttoy::SubOp>(location, lhs, rhs);
+            return builder.create<mlir::etoy::SubOp>(location, lhs, rhs);
         case '*':
-            return builder.create<mlir::ttoy::MulOp>(location, lhs, rhs);
+            return builder.create<mlir::etoy::MulOp>(location, lhs, rhs);
         case '/':
-            return builder.create<mlir::ttoy::DivOp>(location, lhs, rhs);
+            return builder.create<mlir::etoy::DivOp>(location, lhs, rhs);
         }
 
         mlir::emitError(location, "invalid binary operation '")
@@ -194,7 +194,7 @@ class MLIRGenImpl {
             }
         }
 
-        builder.create<mlir::ttoy::ReturnOp>(
+        builder.create<mlir::etoy::ReturnOp>(
             location,
             expr ? llvm::ArrayRef(expr) : llvm::ArrayRef<mlir::Value>());
 
@@ -235,7 +235,7 @@ class MLIRGenImpl {
         auto dataAttribute =
             mlir::DenseElementsAttr::get(dataType, llvm::ArrayRef(datas));
 
-        return builder.create<mlir::ttoy::ConstantOp>(location, type,
+        return builder.create<mlir::etoy::ConstantOp>(location, type,
                                                       dataAttribute);
     }
 
@@ -270,33 +270,33 @@ class MLIRGenImpl {
         if (callee == "transpose") {
             if (call_ast.getArgs().size() != 1) {
                 emitError(location,
-                          "MLIR codegen encountered an error: ttoy.transpose "
+                          "MLIR codegen encountered an error: etoy.transpose "
                           "does not accept multiple arguments");
                 return nullptr;
             }
-            return builder.create<mlir::ttoy::TransposeOp>(location,
+            return builder.create<mlir::etoy::TransposeOp>(location,
                                                            operands[0]);
         } else if (callee == "dot" || callee == "mm" || callee == "bmm") {
             if (call_ast.getArgs().size() != 2) {
                 emitError(location,
                           "MLIR codegen encountered an error: "
-                          "ttoy.tensor_multiplications "
+                          "etoy.tensor_multiplications "
                           "does not accept arguments number expect for 2 ");
                 return nullptr;
             }
 
             if (callee == "dot")
-                return builder.create<mlir::ttoy::DotOp>(location, operands[0],
+                return builder.create<mlir::etoy::DotOp>(location, operands[0],
                                                          operands[1]);
             if (callee == "mm")
-                return builder.create<mlir::ttoy::MMOp>(location, operands[0],
+                return builder.create<mlir::etoy::MMOp>(location, operands[0],
                                                         operands[1]);
             if (callee == "bmm")
-                return builder.create<mlir::ttoy::BMMOp>(location, operands[0],
+                return builder.create<mlir::etoy::BMMOp>(location, operands[0],
                                                          operands[1]);
         }
 
-        return builder.create<mlir::ttoy::CallOp>(location, callee, operands);
+        return builder.create<mlir::etoy::CallOp>(location, callee, operands);
     }
 
     llvm::LogicalResult mlirGen(PrintExprAST& call) {
@@ -306,7 +306,7 @@ class MLIRGenImpl {
             return mlir::failure();
         }
 
-        builder.create<mlir::ttoy::PrintOp>(loc(call.loc()), arg);
+        builder.create<mlir::etoy::PrintOp>(loc(call.loc()), arg);
         return mlir::success();
     }
 
@@ -317,7 +317,7 @@ class MLIRGenImpl {
             return mlir::failure();
         }
 
-        builder.create<mlir::ttoy::ScanOp>(
+        builder.create<mlir::etoy::ScanOp>(
             loc(call.loc()),
             llvm::cast<mlir::TensorType>(getType(call.getType())), arg);
 
@@ -325,7 +325,7 @@ class MLIRGenImpl {
     }
 
     mlir::Value mlirGen(NumberExprAST& num) {
-        return builder.create<mlir::ttoy::ConstantOp>(loc(num.loc()),
+        return builder.create<mlir::etoy::ConstantOp>(loc(num.loc()),
                                                       num.getValue());
     }
 
@@ -363,7 +363,7 @@ class MLIRGenImpl {
             return nullptr;
 
         if (!vardecl.getType().shape.empty()) {
-            value = builder.create<mlir::ttoy::ReshapeOp>(
+            value = builder.create<mlir::etoy::ReshapeOp>(
                 loc(vardecl.loc()), getType(vardecl.getType()), value);
         }
 
@@ -420,30 +420,30 @@ class MLIRGenImpl {
     mlir::ModuleOp mlirGen(ModuleAST& module_ast) {
         // We create an empty MLIR module and codegen functions one at a time
         // and add them to the module.
-        ttoy_module = mlir::ModuleOp::create(builder.getUnknownLoc());
+        etoy_module = mlir::ModuleOp::create(builder.getUnknownLoc());
 
         for (FunctionAST& f : module_ast) {
             mlirGen(f);
         }
 
         if (err_detected) {
-            ttoy_module->emitError("module IR gen error");
+            etoy_module->emitError("module IR gen error");
             return nullptr;
         }
 
-        if (failed(mlir::verify(ttoy_module))) {
-            ttoy_module.emitError("module verification error");
+        if (failed(mlir::verify(etoy_module))) {
+            etoy_module.emitError("module verification error");
             return nullptr;
         }
 
-        return ttoy_module;
+        return etoy_module;
     }
 };
 } // namespace
 
-namespace ttoy {
+namespace etoy {
 mlir::OwningOpRef<mlir::ModuleOp> mlirGen(mlir::MLIRContext& context,
                                           ModuleAST& module_ast) {
     return MLIRGenImpl(context).mlirGen(module_ast);
 }
-} // namespace ttoy
+} // namespace etoy

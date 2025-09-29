@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(ttoy)
+project(etoy)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to conform to")
@@ -67,17 +67,17 @@ add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(generated)
 
-message(STATUS "TTOY_SOURCE_FILES: ${TTOY_SOURCE_FILES}")
+message(STATUS "ETOY_SOURCE_FILES: ${ETOY_SOURCE_FILES}")
 
-add_executable(ttoy "${CMAKE_SOURCE_DIR}/src/ttoyc.cpp" ${TTOY_SOURCE_FILES})
+add_executable(etoy "${CMAKE_SOURCE_DIR}/src/etoyc.cpp" ${ETOY_SOURCE_FILES})
 
-add_dependencies(ttoy 
-    TToy_Dialect_Operations 
-    TToy_PatternMatch
-    TToy_ShapeInferenceOpInterface
+add_dependencies(etoy 
+    Etoy_Dialect_Operations 
+    Etoy_PatternMatch
+    Etoy_ShapeInferenceOpInterface
 )
 
-target_link_libraries(ttoy PRIVATE
+target_link_libraries(etoy PRIVATE
     MLIRFuncAllExtensions
     MLIRLLVMCommonConversion
     MLIRExecutionEngine
@@ -89,7 +89,7 @@ target_link_libraries(ttoy PRIVATE
     MLIRSCFToControlFlow
 )
 
-target_compile_definitions(ttoy PRIVATE
+target_compile_definitions(etoy PRIVATE
     CLANG_ENABLE_ARCSEH=OFF
     CLANG_DEFAULT_CXX_STDLIB=libc++
 )

@@ -1,16 +1,16 @@
-//===- IRGen.td - TToy dialect MLIRGen declarations ----------*- tablegen
+//===- IRGen.td - Etoy dialect MLIRGen declarations ----------*- tablegen
 //-*-===//
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 //
-// Generate TToy-dialect from AST
+// Generate Etoy-dialect from AST
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_IRGEN_H
-#define TTOY_IRGEN_H
+#ifndef ETOY_IRGEN_H
+#define ETOY_IRGEN_H
 
 #include <mlir/IR/MLIRContext.h>
 
@@ -21,11 +21,11 @@ class ModuleOp;
 
 } // namespace mlir
 
-namespace ttoy {
+namespace etoy {
 class ModuleAST;
 
 mlir::OwningOpRef<mlir::ModuleOp> mlirGen(mlir::MLIRContext& context,
                                           ModuleAST& module_ast);
-} // namespace ttoy
+} // namespace etoy
 
-#endif // TTOY_IRGEN_H
+#endif // ETOY_IRGEN_H

@@ -1,15 +1,15 @@
-//===- Dialect.td - TToy dialect definitions ----------*- tablegen -*-===//
+//===- Dialect.td - Etoy dialect definitions ----------*- tablegen -*-===//
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 //
-// Defines the TToy dialect.
+// Defines the Etoy dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_DIALECT
-#define TTOY_DIALECT
+#ifndef ETOY_DIALECT
+#define ETOY_DIALECT
 
 include "Ops.td"
 include "mlir/IR/DialectBase.td"

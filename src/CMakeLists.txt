@@ -1,5 +1,5 @@
 add_subdirectory(parser)
-add_subdirectory(ttoy)
+add_subdirectory(etoy)
 add_subdirectory(pass)
 
-set(TTOY_SOURCE_FILES ${TTOY_SOURCE_FILES} PARENT_SCOPE)
+set(ETOY_SOURCE_FILES ${ETOY_SOURCE_FILES} PARENT_SCOPE)

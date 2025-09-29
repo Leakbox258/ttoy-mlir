@@ -8,13 +8,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_SHAPEINFERENCEINTERFACE_HPP_
-#define TTOY_SHAPEINFERENCEINTERFACE_HPP_
+#ifndef ETOY_SHAPEINFERENCEINTERFACE_HPP_
+#define ETOY_SHAPEINFERENCEINTERFACE_HPP_
 
 #include <mlir/IR/OpDefinition.h>
 
 namespace mlir {
-namespace ttoy {
+namespace etoy {
 
 #include "generated/ShapeInferenceOpInterface.h.inc"
 

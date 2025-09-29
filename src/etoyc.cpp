@@ -1,4 +1,4 @@
-//===- ttoyc.cpp - The ttoy Compiler
+//===- etoyc.cpp - The etoy Compiler
 //----------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -7,16 +7,16 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the entry point for the ttoy compiler.
+// This file implements the entry point for the etoy compiler.
 //
 //===----------------------------------------------------------------------===//
 
+#include "etoy/Dialect.hpp"
+#include "etoy/IRGen.hpp"
 #include "parser/AST.h"
 #include "parser/Lexer.h"
 #include "parser/Parser.h"
 #include "pass/Passes.hpp"
-#include "ttoy/Dialect.hpp"
-#include "ttoy/IRGen.hpp"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Support/FileSystem.h"
@@ -69,26 +69,26 @@
 #include <system_error>
 #include <utility>
 
-using namespace ttoy;
+using namespace etoy;
 namespace cl = llvm::cl;
 
 static cl::opt<std::string> inputFilename(cl::Positional,
-                                          cl::desc("<input ttoy file>"),
+                                          cl::desc("<input etoy file>"),
                                           cl::init("-"),
                                           cl::value_desc("input filename"));
 
-static cl::opt<std::string> outputFilename("o", cl::desc("<output ttoy file>"),
+static cl::opt<std::string> outputFilename("o", cl::desc("<output etoy file>"),
                                            cl::init("-"),
                                            cl::value_desc("output filename"));
 
 namespace {
-enum InputType { TToy, MLIR };
+enum InputType { Etoy, MLIR };
 } // namespace
 static cl::opt<enum InputType>
-    inputType("x", cl::init(TToy),
+    inputType("x", cl::init(Etoy),
               cl::desc("Decided the kind of output desired"),
-              cl::values(clEnumValN(TToy, "ttoy",
-                                    "load the input file as a TToy source.")),
+              cl::values(clEnumValN(Etoy, "etoy",
+                                    "load the input file as a Etoy source.")),
               cl::values(clEnumValN(MLIR, "mlir",
                                     "load the input file as an MLIR file")));
 
@@ -122,8 +122,8 @@ static cl::opt<enum Action> emitAction(
 
 static cl::opt<bool> enableOpt("opt", cl::desc("Enable optimizations"));
 
-/// Returns a TToy AST resulting from parsing the file or a nullptr on error.
-std::unique_ptr<ttoy::ModuleAST> parseInputFile(llvm::StringRef filename) {
+/// Returns a Etoy AST resulting from parsing the file or a nullptr on error.
+std::unique_ptr<etoy::ModuleAST> parseInputFile(llvm::StringRef filename) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr =
         llvm::MemoryBuffer::getFileOrSTDIN(filename);
     if (std::error_code ec = fileOrErr.getError()) {
@@ -187,15 +187,15 @@ int loadAndProcessMLIR(mlir::MLIRContext& context,
 
         // Now that there is only one function, we can infer the shapes of each
         // of the operations.
-        mlir::OpPassManager& optPM = pm.nest<mlir::ttoy::FuncOp>();
-        optPM.addPass(mlir::ttoy::createShapeInferencePass());
+        mlir::OpPassManager& optPM = pm.nest<mlir::etoy::FuncOp>();
+        optPM.addPass(mlir::etoy::createShapeInferencePass());
         optPM.addPass(mlir::createCanonicalizerPass());
         optPM.addPass(mlir::createCSEPass());
     }
 
     if (isLoweringToAffine) {
         // Partially lower the toy dialect.
-        pm.addPass(mlir::ttoy::createLowerToAffinePass());
+        pm.addPass(mlir::etoy::createLowerToAffinePass());
 
         // Add a few cleanups post lowering.
         mlir::OpPassManager& optPM = pm.nest<mlir::func::FuncOp>();
@@ -211,7 +211,7 @@ int loadAndProcessMLIR(mlir::MLIRContext& context,
 
     if (isLoweringToLLVM) {
         // Finish lowering the toy IR to the LLVM dialect.
-        pm.addPass(mlir::ttoy::createLowerToLLVMPass());
+        pm.addPass(mlir::etoy::createLowerToLLVMPass());
         // This is necessary to have line tables emitted and basic
         // debugger working. In the future we will add proper debug information
         // emission directly from our frontend.
@@ -423,7 +423,7 @@ int main(int argc, char** argv) {
     mlir::registerMLIRContextCLOptions();
     mlir::registerPassManagerCLOptions();
 
-    cl::ParseCommandLineOptions(argc, argv, "ttoy compiler\n");
+    cl::ParseCommandLineOptions(argc, argv, "etoy compiler\n");
 
     if (emitAction == Action::DumpAST)
         return dumpAST();
@@ -434,7 +434,7 @@ int main(int argc, char** argv) {
 
     mlir::MLIRContext context(registry);
     // Load our Dialect in this MLIR Context.
-    context.getOrLoadDialect<mlir::ttoy::TToyDialect>();
+    context.getOrLoadDialect<mlir::etoy::EtoyDialect>();
 
     mlir::OwningOpRef<mlir::ModuleOp> module;
     if (int error = loadAndProcessMLIR(context, module))

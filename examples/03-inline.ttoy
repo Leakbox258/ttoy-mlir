@@ -1,4 +1,4 @@
-/// ttoyc will inline all sub-funcs in order to do shape infer.
+/// etoyc will inline all sub-funcs in order to do shape infer.
 /// The mlir generic inliner will also perform simplifications
 
 fn redundant_transpose(a) {

@@ -1,15 +1,15 @@
-//===- Ops.td - TToy dialect operations definitions ----------*- tablegen -*-===//
+//===- Ops.td - Etoy dialect operations definitions ----------*- tablegen -*-===//
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 //
-// Defines the operations of the TToy dialect.
+// Defines the operations of the Etoy dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_OPERATIONS
-#define TTOY_OPERATIONS
+#ifndef ETOY_OPERATIONS
+#define ETOY_OPERATIONS
 
 include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/FunctionInterfaces.td"
@@ -20,24 +20,24 @@ include "mlir/Interfaces/CastInterfaces.td"
 include "pass/ShapeInferenceOpInterface.td"
 
 // dialect definitions
-def TToy_Dialect : Dialect {
-    let name = "ttoy";
-    let cppNamespace = "::mlir::ttoy";
-    let summary = "a tensor based ttoy dialect";
+def Etoy_Dialect : Dialect {
+    let name = "etoy";
+    let cppNamespace = "::mlir::etoy";
+    let summary = "a tensor based etoy dialect";
     let description = [{
         mlir extension.
     }];
     // TODO
 }
 
-class TToy_Op<string mnemonic, list<Trait> traits = []> : Op<TToy_Dialect, mnemonic, traits>;
+class EToy_Op<string mnemonic, list<Trait> traits = []> : Op<Etoy_Dialect, mnemonic, traits>;
 
 // ConstantOp
-// this how ttoy represent a constant tensor
+// this how etoy represent a constant tensor
 // input a descriptive attribute and output a tensor
 // the attr and value type is provided by mlir infra
-def ConstantOp : TToy_Op<"constant", [Pure]> {
-    // will print as 'ttoy.constant'
+def ConstantOp : EToy_Op<"constant", [Pure]> {
+    // will print as 'etoy.constant'
     let summary = "constant";
     let arguments = (ins 
         F64ElementsAttr : $value
@@ -60,7 +60,7 @@ def ConstantOp : TToy_Op<"constant", [Pure]> {
 }
 
 // AddOp
-def AddOp : TToy_Op<"add", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+def AddOp : EToy_Op<"add", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "element-wise add";
     let arguments = (ins 
         F64Tensor : $lhs, 
@@ -77,7 +77,7 @@ def AddOp : TToy_Op<"add", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInte
 }
 
 // SubOp
-def SubOp : TToy_Op<"sub", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+def SubOp : EToy_Op<"sub", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "element-wise sub";
     let arguments = (ins
         F64Tensor : $lhs,
@@ -94,7 +94,7 @@ def SubOp : TToy_Op<"sub", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInte
 }
 
 // MulOp
-def MulOp : TToy_Op<"mul", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+def MulOp : EToy_Op<"mul", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "element-wise mul";
     let arguments = (ins
         F64Tensor : $lhs,
@@ -114,7 +114,7 @@ def MulOp : TToy_Op<"mul", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInte
 }
 
 // DivOp
-def DivOp : TToy_Op<"div", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+def DivOp : EToy_Op<"div", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "element-wise Div";
     let arguments = (ins
         F64Tensor : $lhs,
@@ -134,7 +134,7 @@ def DivOp : TToy_Op<"div", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInte
 }
 
 // FuncOp
-def FuncOp : TToy_Op<"func", [
+def FuncOp : EToy_Op<"func", [
     FunctionOpInterface, IsolatedFromAbove
   ]> {
   let summary = "user defined function operation";
@@ -168,7 +168,7 @@ def FuncOp : TToy_Op<"func", [
 }
 
 // CallOp
-def CallOp : TToy_Op<"call",
+def CallOp : EToy_Op<"call",
 [DeclareOpInterfaceMethods<CallOpInterface>]> {
     let summary = "call operation";
     let arguments = (ins
@@ -190,7 +190,7 @@ def CallOp : TToy_Op<"call",
 }
 
 // ReturnOp
-def ReturnOp : TToy_Op<"return", [Pure, HasParent<"FuncOp">,
+def ReturnOp : EToy_Op<"return", [Pure, HasParent<"FuncOp">,
                                  Terminator]> {
     let summary = "return operation";
     let arguments = (ins
@@ -215,7 +215,7 @@ def ReturnOp : TToy_Op<"return", [Pure, HasParent<"FuncOp">,
 
 ///  built-in functions
 
-def PrintOp : TToy_Op<"print"> {
+def PrintOp : EToy_Op<"print"> {
     let summary = "print builtin operation";
     let arguments = (ins
         AnyTypeOf<[F64Tensor, F64MemRef]> : $input
@@ -226,7 +226,7 @@ def PrintOp : TToy_Op<"print"> {
 
 /// let a<...>;
 /// scan<...>(a);
-def ScanOp : TToy_Op<"scan"> {
+def ScanOp : EToy_Op<"scan"> {
     let summary = "scan builtin operation";
     let arguments = (ins
         TypeAttrOf<F64Tensor> : $template_type,
@@ -237,7 +237,7 @@ def ScanOp : TToy_Op<"scan"> {
     let hasVerifier = 1;
 }
 
-def ReshapeOp : TToy_Op<"reshape"> {
+def ReshapeOp : EToy_Op<"reshape"> {
     let summary = "tensor-reshape builtin operation";
     let arguments = (ins 
         F64Tensor : $input
@@ -254,7 +254,7 @@ def ReshapeOp : TToy_Op<"reshape"> {
     let hasCanonicalizer = 1;
 }
 
-def TransposeOp : TToy_Op<"transpose", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+def TransposeOp : EToy_Op<"transpose", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "tensor-transpose builtin operation";
     
     let arguments = (ins
@@ -276,7 +276,7 @@ def TransposeOp : TToy_Op<"transpose", [Pure, DeclareOpInterfaceMethods<ShapeInf
     let hasCanonicalizer = 1;
 }
 
-def CastOp : TToy_Op<"cast", [
+def CastOp : EToy_Op<"cast", [
     DeclareOpInterfaceMethods<CastOpInterface>,
     DeclareOpInterfaceMethods<ShapeInferenceOpInterface>,
     Pure,
@@ -290,7 +290,7 @@ def CastOp : TToy_Op<"cast", [
     let assemblyFormat = "$input attr-dict `:` type($input) `to` type($output)";
 }
 
-def DotOp : TToy_Op<"dot", [
+def DotOp : EToy_Op<"dot", [
     Pure,
     DeclareOpInterfaceMethods<ShapeInferenceOpInterface>
 ]> {
@@ -316,7 +316,7 @@ def DotOp : TToy_Op<"dot", [
     let hasVerifier = 1;
 }
 
-def MMOp : TToy_Op<"mm", [
+def MMOp : EToy_Op<"mm", [
     Pure,
     DeclareOpInterfaceMethods<ShapeInferenceOpInterface>
 ]> {
@@ -342,7 +342,7 @@ def MMOp : TToy_Op<"mm", [
     let hasVerifier = 1;
 }
 
-def BMMOp : TToy_Op<"bmm", [
+def BMMOp : EToy_Op<"bmm", [
     Pure,
     DeclareOpInterfaceMethods<ShapeInferenceOpInterface>
 ]> {

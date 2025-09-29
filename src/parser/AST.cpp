@@ -1,4 +1,4 @@
-//===- AST.cpp - Helper for printing out the TToy AST
+//===- AST.cpp - Helper for printing out the Etoy AST
 //----------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the AST dump for the TToy language.
+// This file implements the AST dump for the Etoy language.
 //
 //===----------------------------------------------------------------------===//
 
@@ -20,7 +20,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <string>
 
-using namespace ttoy;
+using namespace etoy;
 
 namespace {
 
@@ -234,9 +234,9 @@ void ASTDumper::dump(ModuleAST* node) {
         dump(&f);
 }
 
-namespace ttoy {
+namespace etoy {
 
 // Public API
 void dump(ModuleAST& module) { ASTDumper().dump(&module); }
 
-} // namespace ttoy
+} // namespace etoy

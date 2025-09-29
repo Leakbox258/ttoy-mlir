@@ -1,20 +1,20 @@
-//===- PatternMatch.cpp - TToy High Level Optimizer
+//===- PatternMatch.cpp - Etoy High Level Optimizer
 //--------------------------===//
 //
 //
 // This file implements a set of simple combiners for optimizing operations in
-// the TToy dialect.
+// the Etoy dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#include "ttoy/Dialect.hpp"
+#include "etoy/Dialect.hpp"
 
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/PatternMatch.h>
 #include <mlir/IR/Value.h>
 
 using namespace mlir;
-using namespace ttoy;
+using namespace etoy;
 
 namespace {
 #include "generated/PatternMatch.inc"

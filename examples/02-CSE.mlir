@@ -1,5 +1,5 @@
 module {
-  ttoy.func @main() {
-    ttoy.return
+  etoy.func @main() {
+    etoy.return
   }
 }

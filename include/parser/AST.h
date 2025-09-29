@@ -1,4 +1,4 @@
-//===- AST.h - Node definition for the TToy AST
+//===- AST.h - Node definition for the Etoy AST
 //----------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -7,14 +7,14 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the AST for the TToy language. It is optimized for
+// This file implements the AST for the Etoy language. It is optimized for
 // simplicity, not efficiency. The AST forms a tree structure where each node
 // references its children using std::unique_ptr<>.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_AST_H
-#define TTOY_AST_H
+#ifndef ETOY_AST_H
+#define ETOY_AST_H
 
 // #include "parser/Lexer.h"
 #include "Lexer.h"
@@ -31,7 +31,7 @@
 #include <utility>
 #include <vector>
 
-namespace ttoy {
+namespace etoy {
 
 /// A variable type with shape information.
 struct VarType {
@@ -305,6 +305,6 @@ class ModuleAST {
 
 void dump(ModuleAST&);
 
-} // namespace ttoy
+} // namespace etoy
 
-#endif // TTOY_AST_H
+#endif // ETOY_AST_H

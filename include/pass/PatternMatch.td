@@ -1,18 +1,18 @@
-//===- PatternMatch.td - TToy dialect PatternMatch passes ----------*- tablegen -*-===//
+//===- PatternMatch.td - Etoy dialect PatternMatch passes ----------*- tablegen -*-===//
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 //
-// Defines the PatternMatch passes of TToy dialect using DRR
+// Defines the PatternMatch passes of Etoy dialect using DRR
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_DRR_PATTERN_MATCH
-#define TTOY_DRR_PATTERN_MATCH
+#ifndef ETOY_DRR_PATTERN_MATCH
+#define ETOY_DRR_PATTERN_MATCH
 
 include "mlir/IR/PatternBase.td"
-include "ttoy/Ops.td"
+include "etoy/Ops.td"
 
 /// Note: The DRR definition used for defining patterns is shown below:
 ///

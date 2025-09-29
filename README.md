@@ -1,6 +1,6 @@
 # 前言
 基于MLIR tutorials。具体来说，可以通过`llvm-project/mlir/docs/Tutorials/Toy/` 和 `llvm-project/mlir/example/toy/`分别找到文档和源文件
-本项目的`ttoy`方言，基于`toy dialect`暴改而来，因为`toy dialect`本身和语言BNF设计之下（以及本身的教学目的），整个语言至少有以下不足:
+本项目的`etoy`方言，基于`toy dialect`暴改而来，因为`toy dialect`本身和语言BNF设计之下（以及本身的教学目的），整个语言至少有以下不足:
 - 1. 只有PrintOp, 没有ScanOp，所以实际上整个程序都是编译期能决定的
 - 2. 不强制（以及部分地方不支持）类型声明
 - 3. 没控制流，所以也没递归

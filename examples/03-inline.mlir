@@ -1,9 +1,9 @@
 module {
-  ttoy.func @main() -> tensor<*xf64> {
-    %0 = ttoy.constant dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>
-    %1 = ttoy.cast %0 : tensor<2x3xf64> to tensor<*xf64>
-    ttoy.print %1 : tensor<*xf64>
-    %2 = ttoy.constant dense<[[1.000000e+00], [2.000000e+00]]> : tensor<2x1xf64>
-    ttoy.return %2 : tensor<2x1xf64>
+  etoy.func @main() -> tensor<*xf64> {
+    %0 = etoy.constant dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>
+    %1 = etoy.cast %0 : tensor<2x3xf64> to tensor<*xf64>
+    etoy.print %1 : tensor<*xf64>
+    %2 = etoy.constant dense<[[1.000000e+00], [2.000000e+00]]> : tensor<2x1xf64>
+    etoy.return %2 : tensor<2x1xf64>
   }
 }

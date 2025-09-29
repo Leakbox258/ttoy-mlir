@@ -44,7 +44,7 @@ module {
         affine.store %2, %alloc[%arg0, %arg1] : memref<3x2xf64>
       }
     }
-    ttoy.print %alloc : memref<3x2xf64>
+    etoy.print %alloc : memref<3x2xf64>
     memref.dealloc %alloc_8 : memref<2x3xf64>
     memref.dealloc %alloc_7 : memref<3x2xf64>
     memref.dealloc %alloc_6 : memref<3x2xf64>

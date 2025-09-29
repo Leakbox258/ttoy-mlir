@@ -1,4 +1,4 @@
-//===- Lexer.h - Lexer for the TToy language
+//===- Lexer.h - Lexer for the Etoy language
 //-------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -7,12 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements a simple Lexer for the TToy language.
+// This file implements a simple Lexer for the Etoy language.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TTOY_LEXER_H
-#define TTOY_LEXER_H
+#ifndef ETOY_LEXER_H
+#define ETOY_LEXER_H
 
 #include "llvm/ADT/StringRef.h"
 
@@ -21,7 +21,7 @@
 #include <string>
 #include <tuple>
 
-namespace ttoy {
+namespace etoy {
 
 /// Structure definition a location in a file.
 struct Location {
@@ -241,6 +241,6 @@ class LexerBuffer final : public Lexer {
     }
     const char *current, *end;
 };
-} // namespace ttoy
+} // namespace etoy
 
 #endif // TOY_LEXER_H

@@ -1,15 +1,15 @@
-//===- Dialect.td - TToy dialect definitions ----------*- tablegen -*-===//
+//===- Dialect.td - Etoy dialect definitions ----------*- tablegen -*-===//
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 //
-// Defines the TToy dialect.
+// Defines the Etoy dialect.
 // include Dialect itself, Ops, Builtins, all in one
 //
 //===----------------------------------------------------------------------===//
 
-#include "ttoy/Dialect.hpp"
+#include "etoy/Dialect.hpp"
 #include "generated/Dialect.cpp.inc"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
 #include "mlir/IR/Region.h"
@@ -39,11 +39,11 @@
 #include <string>
 
 using namespace mlir;
-using namespace mlir::ttoy;
+using namespace mlir::etoy;
 
-/// ttoy dialect inliner
+/// etoy dialect inliner
 
-struct TToyInlinerInterface : public DialectInlinerInterface {
+struct EtoyInlinerInterface : public DialectInlinerInterface {
     using DialectInlinerInterface::DialectInlinerInterface;
 
     // Analysis Hooks
@@ -84,12 +84,12 @@ struct TToyInlinerInterface : public DialectInlinerInterface {
 };
 
 /// where to registrate the types and ops on current context
-void TToyDialect::initialize() {
+void EtoyDialect::initialize() {
     addOperations<
 #define GET_OP_LIST
 #include "generated/Ops.cpp.inc"
         >();
-    addInterfaces<TToyInlinerInterface>();
+    addInterfaces<EtoyInlinerInterface>();
 }
 
 static mlir::ParseResult parseBinaryOp(mlir::OpAsmParser& parser,

@@ -6,9 +6,9 @@
 // propagation of array shapes through function specialization.
 //
 //===----------------------------------------------------------------------===//
+#include "etoy/Dialect.hpp"
 #include "pass/Passes.hpp"
 #include "pass/ShapeInferenceOpInterface.hpp"
-#include "ttoy/Dialect.hpp"
 
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallPtrSet.h>
@@ -27,7 +27,7 @@
 #define DEBUG_TYPE "shape-inference"
 
 using namespace mlir;
-using namespace ttoy;
+using namespace etoy;
 
 #include "generated/ShapeInferenceOpInterface.cpp.inc"
 
@@ -36,7 +36,7 @@ namespace {
 // pass run on function
 struct ShapeInferencePass
     : public mlir::PassWrapper<ShapeInferencePass,
-                               OperationPass<ttoy::FuncOp>> {
+                               OperationPass<etoy::FuncOp>> {
     // explict pass id
     MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ShapeInferencePass)
 
@@ -99,6 +99,6 @@ struct ShapeInferencePass
 } // namespace
 
 // pass create inferface
-std::unique_ptr<mlir::Pass> mlir::ttoy::createShapeInferencePass() {
+std::unique_ptr<mlir::Pass> mlir::etoy::createShapeInferencePass() {
     return std::make_unique<ShapeInferencePass>();
 }

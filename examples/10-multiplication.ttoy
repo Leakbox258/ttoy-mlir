@@ -1,7 +1,12 @@
 fn main() {
-    let a<2> = [1, 2];
-    let b<2> = [2, 4];
-    let c = dot(a, b);
+    // let v1<2> = [1, 2];
+    // let v2<2> = [2, 4];
+    // let vv = dot(v1, v2);
+    // print(vv);
+    let m1<2,3> = [[1,2,3], [4,5,6]];
+    let m2<3,2> = [[7,8], [9,10], [11,12]];
+    let mm = mm(m1, m2);
+    print(mm);
 
-    return c;
+    return;
 }

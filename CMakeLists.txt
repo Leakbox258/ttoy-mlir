@@ -11,6 +11,11 @@ set(TABLEGEN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/generated")
 
 message(STATUS "tablegen_output_dir set at ${TABLEGEN_OUTPUT_DIR}")
 
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+        add_compile_options("-g" "-fstandalone-debug" "-fsanitize=address" "-fno-omit-frame-pointer")
+        add_link_options("-rdynamic" "-fsanitize=address")
+endif()
+
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     find_package(MLIR REQUIRED CONFIG)
     find_package(LLVM REQUIRED CONFIG)

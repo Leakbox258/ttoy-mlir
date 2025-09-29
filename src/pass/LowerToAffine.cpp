@@ -9,6 +9,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Dialect/LLVMIR/LLVMTypes.h"
+#include "llvm/ADT/StringRef.h"
+#include <cassert>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/LogicalResult.h>
 #include <mlir/IR/Builders.h>
@@ -16,6 +19,7 @@
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/Operation.h>
 #include <mlir/IR/Value.h>
+#include <numeric>
 #include <pass/Passes.hpp>
 #include <ttoy/Dialect.hpp>
 
@@ -35,6 +39,7 @@
 #include <mlir/Dialect/Affine/IR/AffineOps.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
+#include <mlir/Dialect/LLVMIR/LLVMDialect.h>
 #include <mlir/Dialect/MemRef/IR/MemRef.h>
 
 /// MLIR utils
@@ -58,8 +63,8 @@ static MemRefType convertTensorToMemRef(RankedTensorType type) {
     return MemRefType::get(type.getShape(), type.getElementType());
 }
 
-static Value insertAllocAndDealloc(MemRefType type, Location loc,
-                                   PatternRewriter& rewriter) {
+static memref::AllocOp insertAllocAndDealloc(MemRefType type, Location loc,
+                                             PatternRewriter& rewriter) {
     // 1
     auto alloc = rewriter.create<memref::AllocOp>(loc, type);
 
@@ -100,6 +105,34 @@ static void lowerOpToLoops(Operation* op, ValueRange operands,
         });
 
     rewriter.replaceOp(op, alloc);
+}
+
+static void clearAllocOp(memref::AllocOp op, OpBuilder& builder, Location loc) {
+    auto shape = op.getType().getShape();
+    auto size = std::accumulate(
+        shape.begin(), shape.end(), 8ll /* sizeof f64 */,
+        [&](const auto& acc, const auto& dim) { return acc * dim; });
+
+    auto rawPtrIndex =
+        builder.create<memref::ExtractAlignedPointerAsIndexOp>(loc, op);
+    auto castI64 = builder.create<arith::IndexCastOp>(loc, builder.getI64Type(),
+                                                      rawPtrIndex);
+
+    auto llvm_PtrTy = LLVM::LLVMPointerType::get(builder.getContext(), 0);
+    auto llvmInt2Ptr =
+        builder.create<LLVM::IntToPtrOp>(loc, llvm_PtrTy, castI64);
+
+    // memset intrinsic: void llvm.memset.p0.i64(i8* ptr, i8 value, i64 len, i1
+    // isVolatile)
+    auto cst0_i8 =
+        builder.create<arith::ConstantIntOp>(loc, 0, builder.getI8Type());
+    auto cst_size =
+        builder.create<arith::ConstantIntOp>(loc, size, builder.getI32Type());
+    auto cstFalse =
+        builder.create<arith::ConstantIntOp>(loc, 0, builder.getI1Type());
+
+    builder.create<LLVM::MemsetOp>(loc, llvmInt2Ptr, cst0_i8, cst_size,
+                                   cstFalse);
 }
 
 namespace {
@@ -344,17 +377,30 @@ struct DotOpLowering : public ConversionPattern {
         auto memref_type = convertTensorToMemRef(tensor_type);
         auto alloc = insertAllocAndDealloc(memref_type, loc, rewriter);
 
-        llvm::SmallVector<int64_t, 4> lower_bounds(tensor_type.getRank()); // 1
-        llvm::SmallVector<int64_t, 4> steps(tensor_type.getRank());
+        clearAllocOp(alloc, rewriter, loc);
+
+        llvm::SmallVector<int64_t, 2> lower_bounds(tensor_type.getRank()); // 1
+        llvm::SmallVector<int64_t, 2> steps(tensor_type.getRank(), 1);
+
+        ttoy::MMOpAdaptor adaptor(operands);
+
+        /// lhs will lowering before dot, so here is MemRefType, I guess...
+        const auto lhs_shape =
+            llvm::dyn_cast<MemRefType>(adaptor.getLhs().getType()).getShape();
+
+        llvm::SmallVector<int64_t, 2> upper_bounds{lhs_shape[0]};
+
+        auto cst0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
 
         affine::buildAffineLoopNest(
-            rewriter, loc, lower_bounds, tensor_type.getShape(), steps,
+            rewriter, loc, lower_bounds, upper_bounds, steps,
             [&](OpBuilder& nested_builder, Location loc, ValueRange ivs) {
                 ttoy::DotOp::Adaptor adaptor(operands);
 
                 // lhs through idx
                 auto load_lhs = nested_builder.create<affine::AffineLoadOp>(
                     loc, adaptor.getLhs(), ivs);
+
                 // rhs through idx
                 auto load_rhs = nested_builder.create<affine::AffineLoadOp>(
                     loc, adaptor.getRhs(), ivs);
@@ -362,15 +408,17 @@ struct DotOpLowering : public ConversionPattern {
                 auto mul = nested_builder.create<arith::MulFOp>(loc, load_lhs,
                                                                 load_rhs);
 
-                auto load_res =
-                    nested_builder.create<affine::AffineLoadOp>(loc, alloc);
+                auto load_res = nested_builder.create<affine::AffineLoadOp>(
+                    loc, alloc, ValueRange{cst0});
 
                 auto add_res =
                     nested_builder.create<arith::AddFOp>(loc, mul, load_res);
 
                 nested_builder.create<affine::AffineStoreOp>(
-                    loc, add_res, alloc, ValueRange{});
+                    loc, add_res, alloc, ValueRange{cst0});
             });
+
+        rewriter.replaceOp(op, alloc);
 
         return success();
     }
@@ -393,18 +441,17 @@ struct MMOpLowering : public ConversionPattern {
 
         auto alloc = insertAllocAndDealloc(memref_type, loc, rewriter);
 
-        llvm::SmallVector<int64_t, 4> lower_bounds(tensor_type.getRank() +
-                                                   1);                  // 3
-        llvm::SmallVector<int64_t, 4> steps(tensor_type.getRank() + 1); // 3
+        clearAllocOp(alloc, rewriter, loc);
+
+        llvm::SmallVector<int64_t, 4> lower_bounds(tensor_type.getRank() + 1);
+        llvm::SmallVector<int64_t, 4> steps(tensor_type.getRank() + 1, 1);
 
         ttoy::MMOpAdaptor adaptor(operands);
 
         const auto lhs_shape =
-            llvm::dyn_cast<RankedTensorType>(adaptor.getLhs().getType())
-                .getShape();
+            llvm::dyn_cast<MemRefType>(adaptor.getLhs().getType()).getShape();
         const auto rhs_shape =
-            llvm::dyn_cast<RankedTensorType>(adaptor.getRhs().getType())
-                .getShape();
+            llvm::dyn_cast<MemRefType>(adaptor.getRhs().getType()).getShape();
 
         llvm::SmallVector<int64_t, 4> upper_bounds{lhs_shape[0], rhs_shape[1],
                                                    lhs_shape[1]};
@@ -413,13 +460,13 @@ struct MMOpLowering : public ConversionPattern {
             rewriter, loc, lower_bounds, upper_bounds, steps,
             [&](OpBuilder& nested_builder, Location loc, ValueRange ivs_i_j_k) {
                 llvm::SmallVector<Value, 2> ivs_i_k{ivs_i_j_k[0], ivs_i_j_k[2]};
-                llvm::SmallVector<Value, 2> ivs_j_k{ivs_i_j_k[1], ivs_i_j_k[2]};
+                llvm::SmallVector<Value, 2> ivs_k_j{ivs_i_j_k[2], ivs_i_j_k[1]};
                 llvm::SmallVector<Value, 2> ivs_i_j{ivs_i_j_k[0], ivs_i_j_k[1]};
 
                 auto load_lhs = nested_builder.create<affine::AffineLoadOp>(
-                    loc, alloc, ivs_i_k);
+                    loc, adaptor.getLhs(), ivs_i_k);
                 auto load_rhs = nested_builder.create<affine::AffineLoadOp>(
-                    loc, alloc, ivs_j_k);
+                    loc, adaptor.getRhs(), ivs_k_j);
 
                 auto mul = nested_builder.create<arith::MulFOp>(loc, load_lhs,
                                                                 load_rhs);
@@ -433,6 +480,8 @@ struct MMOpLowering : public ConversionPattern {
                 nested_builder.create<affine::AffineStoreOp>(loc, add_res,
                                                              alloc, ivs_i_j);
             });
+
+        rewriter.replaceOp(op, alloc);
 
         return success();
     }
@@ -456,17 +505,17 @@ struct BMMOpLowering : public ConversionPattern {
 
         auto alloc = rewriter.create<memref::AllocOp>(loc, memref_type);
 
+        clearAllocOp(alloc, rewriter, loc);
+
         llvm::SmallVector<int64_t, 4> lower_bounds(tensor_type.getRank() + 1);
-        llvm::SmallVector<int64_t, 4> steps(tensor_type.getRank() + 1);
+        llvm::SmallVector<int64_t, 4> steps(tensor_type.getRank() + 1, 1);
 
         ttoy::BMMOpAdaptor adaptor(operands);
 
         const auto lhs_shape =
-            llvm::dyn_cast<RankedTensorType>(adaptor.getLhs().getType())
-                .getShape();
+            llvm::dyn_cast<MemRefType>(adaptor.getLhs().getType()).getShape();
         const auto rhs_shape =
-            llvm::dyn_cast<RankedTensorType>(adaptor.getRhs().getType())
-                .getShape();
+            llvm::dyn_cast<MemRefType>(adaptor.getRhs().getType()).getShape();
         llvm::SmallVector<int64_t, 4> upper_bounds{tensor_type.getShape()[0],
                                                    lhs_shape[0], rhs_shape[1],
                                                    lhs_shape[1]};
@@ -477,15 +526,15 @@ struct BMMOpLowering : public ConversionPattern {
                 ValueRange ivs_b_i_j_k) {
                 llvm::SmallVector<Value, 4> ivs_b_i_k{
                     ivs_b_i_j_k[0], ivs_b_i_j_k[1], ivs_b_i_j_k[3]};
-                llvm::SmallVector<Value, 4> ivs_b_j_k{
-                    ivs_b_i_j_k[0], ivs_b_i_j_k[2], ivs_b_i_j_k[3]};
+                llvm::SmallVector<Value, 4> ivs_b_k_j{
+                    ivs_b_i_j_k[0], ivs_b_i_j_k[3], ivs_b_i_j_k[2]};
                 llvm::SmallVector<Value, 4> ivs_b_i_j{
                     ivs_b_i_j_k[0], ivs_b_i_j_k[1], ivs_b_i_j_k[2]};
 
                 auto load_lhs = nested_builder.create<affine::AffineLoadOp>(
-                    loc, alloc, ivs_b_i_k);
+                    loc, adaptor.getLhs(), ivs_b_i_k);
                 auto load_rhs = nested_builder.create<affine::AffineLoadOp>(
-                    loc, alloc, ivs_b_j_k);
+                    loc, adaptor.getRhs(), ivs_b_k_j);
 
                 auto mul = nested_builder.create<arith::MulFOp>(loc, load_lhs,
                                                                 load_rhs);
@@ -499,6 +548,8 @@ struct BMMOpLowering : public ConversionPattern {
                 nested_builder.create<affine::AffineStoreOp>(loc, add_res,
                                                              alloc, ivs_b_i_j);
             });
+
+        rewriter.replaceOp(op, alloc);
 
         return success();
     }
@@ -515,7 +566,7 @@ struct TToyToAffineLoweringPass
 
     void getDependentDialects(DialectRegistry& registry) const override {
         registry.insert<affine::AffineDialect, func::FuncDialect,
-                        memref::MemRefDialect>();
+                        LLVM::LLVMDialect, memref::MemRefDialect>();
     }
     void runOnOperation() final;
 };
@@ -526,7 +577,7 @@ void TToyToAffineLoweringPass::runOnOperation() {
 
     target.addLegalDialect<affine::AffineDialect, BuiltinDialect,
                            arith::ArithDialect, func::FuncDialect,
-                           memref::MemRefDialect>();
+                           LLVM::LLVMDialect, memref::MemRefDialect>();
     target.addIllegalDialect<ttoy::TToyDialect>();
 
     // specifically handling PrintOp & ScanOp
@@ -544,9 +595,9 @@ void TToyToAffineLoweringPass::runOnOperation() {
     // the set of patterns that will lower the TToy operations
     RewritePatternSet patterns(&getContext());
     patterns.add<AddOpLowering, SubOpLowering, ConstantOpLowering,
-                 FuncOpLowering, MulOpLowering, DivOpLowering, PrintOpLowering,
-                 ScanOpLowering, ReturnOpLowering, TransposeOpLowering,
-                 DotOpLowering, MMOpLowering, BMMOpLowering>(&getContext());
+                 FuncOpLowering, MulOpLowering, DivOpLowering, DotOpLowering,
+                 MMOpLowering, BMMOpLowering, PrintOpLowering, ScanOpLowering,
+                 ReturnOpLowering, TransposeOpLowering>(&getContext());
 
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns)))) {

@@ -516,9 +516,9 @@ struct BMMOpLowering : public ConversionPattern {
             llvm::dyn_cast<MemRefType>(adaptor.getLhs().getType()).getShape();
         const auto rhs_shape =
             llvm::dyn_cast<MemRefType>(adaptor.getRhs().getType()).getShape();
-        llvm::SmallVector<int64_t, 4> upper_bounds{tensor_type.getShape()[0],
-                                                   lhs_shape[0], rhs_shape[1],
-                                                   lhs_shape[1]};
+        llvm::SmallVector<int64_t, 4> upper_bounds{
+            tensor_type.getShape()[0], // batch
+            lhs_shape[1], rhs_shape[2], lhs_shape[2]};
 
         affine::buildAffineLoopNest(
             rewriter, loc, lower_bounds, upper_bounds, steps,

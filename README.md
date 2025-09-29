@@ -7,7 +7,8 @@
 - 4. 所有非Builtin的Function全都强制内联
 - 5. ShapeInfer在目标制品等于或者低级于Affine Dailect时才会启用，也就是toy dialect上类型信息可能不完整
 - 6. 只有JIT，但是也没有REPL（源于对ReturnOp的粗暴处理）
-- 7. 运算符太少，而且都是element-wise
+- 7. 同上，强制main函数Return Void，导致返回的错误码基本都是随机的
+- 8. 运算符太少，而且都是element-wise
 # env
 在编译之前，需要安装LLVM和MLIR的支持
 ```bash

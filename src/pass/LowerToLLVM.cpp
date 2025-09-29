@@ -25,6 +25,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/LogicalResult.h"
 
 #include <mlir/Conversion/LLVMCommon/MemRefBuilder.h>
@@ -79,8 +80,13 @@ class PrintOpLowering : public ConversionPattern {
         ModuleOp parent_module = op->getParentOfType<ModuleOp>();
 
         auto printf_ref = getOrInsertPrintf(rewriter, parent_module);
+
+        auto single_elem = memref_shape.size() == 1 && memref_shape[0] == 1;
         Value format_specifier_cast = getOrCreateGlobalString(
-            loc, rewriter, "frmt_spec", StringRef("%lf \0", 5), parent_module);
+            loc, rewriter, single_elem ? "frmt_spec_nl" : "frmt_spec",
+            single_elem ? StringRef("%lf\n\0", 5) : StringRef("%lf \0", 5),
+            parent_module);
+
         Value newline_cast = getOrCreateGlobalString(
             loc, rewriter, "nl", StringRef("\n\0", 2), parent_module);
 

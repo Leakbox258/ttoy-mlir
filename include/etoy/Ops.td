@@ -168,12 +168,15 @@ def FuncOp : EToy_Op<"func", [
 }
 
 // CallOp
-def CallOp : EToy_Op<"call",
-[DeclareOpInterfaceMethods<CallOpInterface>]> {
+def CallOp : EToy_Op<"call", [
+    DeclareOpInterfaceMethods<CallOpInterface>
+]> {
     let summary = "call operation";
     let arguments = (ins
         FlatSymbolRefAttr : $callee,
-        Variadic<F64Tensor> : $inputs  
+        Variadic<F64Tensor> : $inputs,
+        OptionalAttr<DictArrayAttr>:$arg_attrs,
+        OptionalAttr<DictArrayAttr>:$res_attrs
     );
     let results = (outs
         F64Tensor

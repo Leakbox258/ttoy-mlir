@@ -118,18 +118,18 @@ static void clearAllocOp(memref::AllocOp op, OpBuilder& builder, Location loc) {
     auto castI64 = builder.create<arith::IndexCastOp>(loc, builder.getI64Type(),
                                                       rawPtrIndex);
 
-    auto llvm_PtrTy = LLVM::LLVMPointerType::get(builder.getContext(), 0);
+    auto llvm_PtrTy = LLVM::LLVMPointerType::get(builder.getContext());
     auto llvmInt2Ptr =
-        builder.create<LLVM::IntToPtrOp>(loc, llvm_PtrTy, castI64);
+        builder.create<LLVM::IntToPtrOp>(loc, llvm_PtrTy, ValueRange{castI64});
 
     // memset intrinsic: void llvm.memset.p0.i64(i8* ptr, i8 value, i64 len, i1
     // isVolatile)
-    auto cst0_i8 =
-        builder.create<arith::ConstantIntOp>(loc, 0, builder.getI8Type());
-    auto cst_size =
-        builder.create<arith::ConstantIntOp>(loc, size, builder.getI32Type());
-    auto cstFalse =
-        builder.create<arith::ConstantIntOp>(loc, 0, builder.getI1Type());
+    auto cst0_i8 = builder.create<arith::ConstantIntOp>(
+        loc, 0, builder.getI8Type().getWidth());
+    auto cst_size = builder.create<arith::ConstantIntOp>(
+        loc, size, builder.getI32Type().getWidth());
+    auto cstFalse = builder.create<arith::ConstantIntOp>(
+        loc, 0, builder.getI1Type().getWidth());
 
     builder.create<LLVM::MemsetOp>(loc, llvmInt2Ptr, cst0_i8, cst_size,
                                    cstFalse);

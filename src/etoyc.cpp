@@ -17,9 +17,10 @@
 #include "parser/Lexer.h"
 #include "parser/Parser.h"
 #include "pass/Passes.hpp"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/PassManager.h"
-#include "llvm/Support/FileSystem.h"
+#include "llvm/TargetParser/Triple.h"
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/Support/FileSystem.h>
 
 #include <cstdlib>
 #include <format>
@@ -361,7 +362,7 @@ int BuildExecutable(mlir::ModuleOp module) {
     llvm::InitializeNativeTargetAsmPrinter();
 
     llvm::StringRef triple_str = LLVMGetDefaultTargetTriple();
-    llvm_module->setTargetTriple(triple_str);
+    llvm_module->setTargetTriple(llvm::Triple(triple_str));
 
     std::string err;
     const llvm::Target* target =
